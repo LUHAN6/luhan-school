@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messaging Centre</title>
+<style>
+:root {
+    --maroon: #781f35;
+    --maroon-dark: #501426;
+    --paper: #f6f7fb;
+    --ink: #202638;
+    --muted: #697386;
+    --line: #e5e8ef;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+.wrapper { max-width: 1150px; margin: 0 auto; padding: 30px 20px 50px; }
+.header {
+    background: linear-gradient(120deg, var(--maroon-dark), var(--maroon));
+    color: white;
+    padding: 30px;
+    border-radius: 18px;
+    margin-bottom: 25px;
+}
+.header h1 { margin: 0 0 9px; font-size: clamp(25px, 4vw, 35px); }
+.header p { margin: 0; line-height: 1.6; color: #f7e9ed; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+    gap: 18px;
+}
+.card {
+    display: block;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    padding: 23px;
+    color: inherit;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(25, 35, 55, .035);
+    transition: transform .15s, border-color .15s;
+}
+.card:hover, .card.selected {
+    border-color: var(--maroon);
+    transform: translateY(-2px);
+}
+.symbol {
+    width: 49px;
+    height: 49px;
+    display: grid;
+    place-items: center;
+    background: #f8e9ee;
+    border-radius: 13px;
+    font-size: 25px;
+    margin-bottom: 16px;
+}
+.card h2 { font-size: 19px; margin: 0 0 10px; }
+.card p { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 18px; }
+.action { color: var(--maroon); font-weight: 700; font-size: 14px; }
+.notice {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 20px;
+    margin-top: 24px;
+    line-height: 1.7;
+}
+.back { color: var(--maroon); font-weight: 600; }
+@media (max-width: 520px) {
+    .wrapper { padding: 16px 12px 30px; }
+    .header { padding: 23px 19px; }
+    .card { padding: 19px; }
+}
+</style>
+</head>
+<body>
+<main class="wrapper">
+    <header class="header">
+        <h1>Messaging Centre</h1>
+        <p>Choose your intended audience before preparing a school communication.</p>
+    </header>
+
+    {% if selected_audience %}
+    <section class="notice">
+        <h2>{{ selected_audience.icon }} {{ selected_audience.title }}</h2>
+        <p>{{ selected_audience.description }}</p>
+        <p>
+            <strong>Selected audience:</strong>
+            {{ selected_audience.title }}
+        </p>
+        <p>
+            Your chosen audience is passed to the campaign form.
+            Review the eligible recipient list before any sending action.
+        </p>
+        <a class="back" href="{% url 'messaging:audiences' %}">← Back to all sections</a>
+    </section>
+    {% endif %}
+
+    <section class="grid" aria-label="Messaging audiences">
+        {% for audience in audiences %}
+        <a class="card {% if selected_audience.key == audience.key %}selected{% endif %}"
+           href="{% url 'messaging:bulk_campaign_add' %}?audience={{ audience.key }}">
+            <div class="symbol">{{ audience.icon }}</div>
+            <h2>{{ audience.title }}</h2>
+            <p>{{ audience.description }}</p>
+            <span class="action">Select audience →</span>
+        </a>
+        {% endfor %}
+    </section>
+
+    <section class="notice">
+        <strong>Before sending:</strong>
+        Confirm the recipient list and message content. School-wide messages
+        should be restricted to authorised users.
+        <p><a class="back" href="{% url 'messaging:dashboard' %}">Open existing messaging dashboard →</a></p>
+    </section>
+</main>
+</body>
+</html>

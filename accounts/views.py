@@ -1,6 +1,8 @@
-﻿from django.contrib import messages
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User, Group, Permission
 from django.shortcuts import redirect, render, get_object_or_404
 from django.db import IntegrityError, transaction
@@ -16,9 +18,11 @@ from academic.models import Assessment, AssessmentType
 from attendance.models import Attendance
 from lms.models import Assignment
 from noticeboard.models import Notice
-from timetable.legacy_compat import Subject as SchedulingSubject, Teacher, TeacherSubject, TeacherClassAssignment, TeacherTeachingAssignment
+from timetable.models import TimetableSubject, TimetableTeacher
+from timetable.advanced_models import TimetableTeacherSubject, TimetableTeacherClassAssignment, TimetableTeacherTeachingAssignment
 
 from .staff_access import (
+    role_permission_required,
     is_admin_user,
     get_staff_teacher,
     get_staff_class_pairs,
@@ -470,7 +474,7 @@ def staff_dashboard(request):
 
     teacher = getattr(
         employee,
-        "scheduling_teacher",
+        "timetable_teacher",
         None,
     )
 
@@ -480,7 +484,7 @@ def staff_dashboard(request):
 
     if teacher:
         teacher_subjects = (
-            teacher.subject_assignments
+            teacher.teacher_subject_links
             .filter(is_active=True)
             .select_related("subject")
             .order_by("subject__name")
@@ -562,40 +566,29 @@ def staff_dashboard(request):
     # because several Django apps contain duplicate codenames.
 
     # ---------------------------------------------------------
-    # SUPPORT STAFF ACCESS
-    # ---------------------------------------------------------
-    # Support Staff retain access to the standard staff portal
-    # tools. Custom Role permissions continue to control the
-    # additional modules such as Fees, Students, Library, etc.
+    # Staff module access is controlled exclusively by the
+    # Admin Portal Custom Role -> Django Permission assignments.
+    #
+    # IMPORTANT:
+    # Do NOT automatically grant access merely because the user
+    # is STAFF or because the user has no timetable Teacher record.
+    # Operational teacher/class/subject scope is handled separately.
 
-    # Support Staff are STAFF users who do not have
-    # an active scheduling Teacher record.
-    support_staff = (
-        request.user.profile.role == "STAFF"
-        and get_staff_teacher(request.user) is None
+
+    can_view_attendance = user_has_role_permission(
+        request.user,
+        "view_attendance",
+        "hr_payroll",
     )
 
-    can_view_attendance = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_attendance",
-            "hr_payroll",
-        )
-    )
-
-    can_view_leave = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_leaveapplication",
-            "hr_payroll",
-        )
+    can_view_leave = user_has_role_permission(
+        request.user,
+        "view_leaveapplication",
+        "hr_payroll",
     )
 
     can_view_payroll = (
-        support_staff
-        or user_has_role_permission(
+        user_has_role_permission(
             request.user,
             "view_payslip",
             "hr_payroll",
@@ -607,47 +600,37 @@ def staff_dashboard(request):
         )
     )
 
-    can_view_loans = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_staffloan",
-            "hr_payroll",
-        )
+    can_view_loans = user_has_role_permission(
+        request.user,
+        "view_staffloan",
+        "hr_payroll",
     )
 
-    can_view_documents = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_employeedocument",
-            "hr_payroll",
-        )
+    can_view_documents = user_has_role_permission(
+        request.user,
+        "view_employeedocument",
+        "hr_payroll",
     )
 
-    can_view_noticeboard = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_notice",
-            "noticeboard",
-        )
+    can_view_noticeboard = user_has_role_permission(
+        request.user,
+        "view_notice",
+        "noticeboard",
     )
 
-    can_view_messaging = (
-        support_staff
-        or user_has_role_permission(
-            request.user,
-            "view_message",
-            "messaging",
-        )
+    can_view_messaging = user_has_role_permission(
+        request.user,
+        "view_message",
+        "messaging",
     )
+
+
 
     can_view_timetable = (
         user_has_role_permission(
             request.user,
-            "view_timetableentry",
-            "scheduling",
+            "view_timetablelesson",
+            "timetable",
         )
         and (
             is_admin_user(request.user)
@@ -685,10 +668,10 @@ def staff_dashboard(request):
         "students",
     )
 
-    can_view_scheduling = user_has_role_permission(
+    can_view_timetable = user_has_role_permission(
         request.user,
-        "view_timetableentry",
-        "scheduling",
+        "view_timetablelesson",
+        "timetable",
     )
 
     can_view_transport = user_has_role_permission(
@@ -735,6 +718,35 @@ def staff_dashboard(request):
         .filter(is_active=True)
         .order_by("-id")
         .first()
+    )
+
+    # Show the new Transport Pro module only to an active Transport Manager
+    # whose custom ERP role has every permission required by its dashboard.
+    transport_dashboard_permissions = (
+        ("view_vehicle", "vehicle"),
+        ("view_transportstaff", "transportstaff"),
+        ("view_learnertransport", "learnertransport"),
+        ("view_transportroute", "transportroute"),
+        ("view_transporttrip", "transporttrip"),
+        ("view_transportincident", "transportincident"),
+        ("view_maintenancerecord", "maintenancerecord"),
+        ("view_boardingevent", "boardingevent"),
+        ("view_transportcharge", "transportcharge"),
+        ("view_transportpayment", "transportpayment"),
+    )
+    transport_role = getattr(profile, "custom_role", None)
+    show_transport_module = bool(
+        transport_role
+        and transport_role.is_active
+        and transport_role.name == "Transport Manager"
+        and all(
+            transport_role.permissions.filter(
+                codename=codename,
+                content_type__app_label="transport_pro",
+                content_type__model=model_name,
+            ).exists()
+            for codename, model_name in transport_dashboard_permissions
+        )
     )
 
     context = {
@@ -802,8 +814,9 @@ def staff_dashboard(request):
         "can_view_library": can_view_library,
         "can_view_fees": can_view_fees,
         "can_view_students": can_view_students,
-        "can_view_scheduling": can_view_scheduling,
+        "can_view_timetable": can_view_timetable,
         "can_view_transport": can_view_transport,
+        "show_transport_module": show_transport_module,
         "can_view_hostel": can_view_hostel,
         "can_view_inventory": can_view_inventory,
         "can_view_lms": can_view_lms,
@@ -3323,6 +3336,23 @@ def add_staff(request):
                 form_context()
             )
 
+        candidate_user = User(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+        )
+        try:
+            validate_password(password, user=candidate_user)
+        except ValidationError as exc:
+            for error in exc.messages:
+                messages.error(request, error)
+            return render(
+                request,
+                "accounts/add_staff.html",
+                form_context()
+            )
+
         if User.objects.filter(username=username).exists():
 
             messages.error(
@@ -4751,12 +4781,15 @@ def profile_settings(request):
         password_changed = False
 
         if new_password:
-            if len(new_password) < 8:
-                messages.error(request, "Password must be at least 8 characters long.")
-                return redirect("accounts:profile_settings")
-
             if new_password != confirm_password:
                 messages.error(request, "The passwords do not match.")
+                return redirect("accounts:profile_settings")
+
+            try:
+                validate_password(new_password, user=user)
+            except ValidationError as exc:
+                for error in exc.messages:
+                    messages.error(request, error)
                 return redirect("accounts:profile_settings")
 
             user.set_password(new_password)
@@ -5093,10 +5126,27 @@ def _generate_staff_credentials():
 
     username = employee_number
 
-    password = "Luhan@" + get_random_string(
-        8,
-        allowed_chars="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+    candidate_user = User(username=username)
+    alphabet = (
+        "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        "abcdefghijkmnopqrstuvwxyz"
+        "23456789!@#$%^&*-_"
     )
+
+    password = None
+    for _ in range(50):
+        candidate = get_random_string(24, allowed_chars=alphabet)
+        try:
+            validate_password(candidate, user=candidate_user)
+        except ValidationError:
+            continue
+        password = candidate
+        break
+
+    if password is None:
+        raise RuntimeError(
+            "Could not generate a password satisfying configured validators."
+        )
 
     return employee_number, username, password
 
@@ -5231,6 +5281,22 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
     username = data["username"]
     password = data["password"]
 
+    try:
+        validate_password(
+            password or "",
+            user=User(
+                username=username or "",
+                first_name=data.get("first_name", ""),
+                last_name=data.get("last_name", ""),
+                email=data.get("email", ""),
+            ),
+        )
+    except ValidationError as exc:
+        raise IntegrityError(
+            "The staff password failed the configured security rules. "
+            "Restart staff registration and try again."
+        ) from exc
+
     if User.objects.filter(username=username).exists():
         raise IntegrityError(
             f"The generated username {username} already exists."
@@ -5305,7 +5371,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
 
         if data.get("staff_type") == "TEACHING":
 
-            teacher = Teacher.objects.create(
+            teacher = TimetableTeacher.objects.create(
                 employee=employee,
                 name=(
                     f"{data.get('first_name', '')} "
@@ -5323,7 +5389,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
             )
 
             subjects = (
-                SchedulingSubject.objects
+                TimetableSubject.objects
                 .filter(
                     id__in=effective_subject_ids,
                     is_active=True
@@ -5333,7 +5399,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
 
             for subject in subjects:
 
-                TeacherSubject.objects.get_or_create(
+                TimetableTeacherSubject.objects.get_or_create(
                     teacher=teacher,
                     subject=subject,
                     defaults={
@@ -5357,7 +5423,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
             for assignment in teaching_assignments:
 
                 subject = (
-                    SchedulingSubject.objects
+                    TimetableSubject.objects
                     .filter(
                         id=assignment.get("subject_id"),
                         is_active=True
@@ -5378,7 +5444,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
                 if not subject or not class_name:
                     continue
 
-                TeacherTeachingAssignment.objects.get_or_create(
+                TimetableTeacherTeachingAssignment.objects.get_or_create(
                     teacher=teacher,
                     subject=subject,
                     class_name=class_name,
@@ -5403,7 +5469,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
                 # GENERAL CLASS ACCESS
                 # ----------------------------------------
 
-                TeacherClassAssignment.objects.get_or_create(
+                TimetableTeacherClassAssignment.objects.get_or_create(
                     teacher=teacher,
                     class_name=class_name,
                     stream=stream or None,
@@ -5438,7 +5504,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
                     continue
 
                 class_assignment, created = (
-                    TeacherClassAssignment.objects.get_or_create(
+                    TimetableTeacherClassAssignment.objects.get_or_create(
                         teacher=teacher,
                         class_name=class_name,
                         stream=stream or None,
@@ -5573,7 +5639,8 @@ def staff_role_assignment(request):
 
             messages.success(
                 request,
-                f"Added successfully\nEmployee Number: {result['employee_number']}\nPassword: {result['password']}"
+                "Staff account created successfully. "
+                "Open the staff creation success page to view the initial credentials."
             )
 
             return redirect(
@@ -5635,7 +5702,7 @@ def staff_subject_assignment(request):
         )
 
     subjects = (
-        SchedulingSubject.objects
+        TimetableSubject.objects
         .filter(is_active=True)
         .order_by("name")
     )
@@ -5712,7 +5779,8 @@ def staff_subject_assignment(request):
 
             messages.success(
                 request,
-                f"Added successfully\nEmployee Number: {result['employee_number']}\nPassword: {result['password']}"
+                "Staff account created successfully. "
+                "Open the staff creation success page to view the initial credentials."
             )
 
             return redirect(
@@ -5772,7 +5840,7 @@ def staff_class_assignment(request):
         return redirect("accounts:staff_subject_assignment")
 
     selected_subjects = (
-        SchedulingSubject.objects
+        TimetableSubject.objects
         .filter(
             id__in=subject_ids,
             is_active=True
@@ -5944,7 +6012,7 @@ def staff_creation_success(request):
         )
         return redirect_by_role(request.user)
 
-    staff = request.session.get("staff_created")
+    staff = request.session.pop("staff_created", None)
 
     if not staff:
         messages.info(
@@ -5953,13 +6021,22 @@ def staff_creation_success(request):
         )
         return redirect("accounts:staff_management")
 
-    return render(
+    response = render(
+
         request,
         "accounts/staff_creation_success.html",
         {
             "staff": staff,
         }
     )
+
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
+    response["Pragma"] = "no-cache"
+
+    response["Expires"] = "0"
+
+    return response
 
 
 
@@ -5996,8 +6073,8 @@ def staff_published_timetable(request):
         is_admin_user(request.user)
         or user_has_role_permission(
             request.user,
-            "view_timetableentry",
-            "scheduling",
+            "view_timetablelesson",
+            "timetable",
         )
     ):
         return redirect("accounts:staff_dashboard")
@@ -6018,7 +6095,7 @@ def staff_published_timetable(request):
 
             teacher = getattr(
                 profile.employee,
-                "scheduling_teacher",
+                "timetable_teacher",
                 None,
             )
 
@@ -6049,6 +6126,10 @@ def staff_published_timetable(request):
 # ============================================================
 
 @login_required
+@role_permission_required(
+    "view_timetablelesson",
+    "timetable",
+)
 def staff_my_timetable(request):
     if not is_admin_user(request.user):
         profile = getattr(request.user, "profile", None)
@@ -6333,6 +6414,20 @@ def staff_my_timetable(request):
         "accounts/staff_my_timetable.html",
         context,
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

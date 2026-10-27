@@ -117,6 +117,10 @@ class Student(models.Model):
 # ONLINE ADMISSION APPLICATIONS
 # ============================================================
 
+    transport_required = models.BooleanField(
+        default=False,
+        help_text="Whether this learner requires school transport.",
+    )
 class OnlineApplication(models.Model):
 
     STATUS_CHOICES = [
@@ -157,6 +161,23 @@ class OnlineApplication(models.Model):
     requested_stream = models.CharField(
         max_length=20,
         blank=True
+    )
+
+    transport_required = models.BooleanField(
+        default=False,
+        help_text="Whether transport is required.",
+    )
+    transport_route = models.ForeignKey(
+        "transport.Route", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="online_transport_applications",
+    )
+    transport_from_stop = models.ForeignKey(
+        "transport.RouteStop", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="online_transport_from_applications",
+    )
+    transport_to_stop = models.ForeignKey(
+        "transport.RouteStop", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="online_transport_to_applications",
     )
 
     parent_name = models.CharField(max_length=150)

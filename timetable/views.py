@@ -1,5 +1,6 @@
-from django.db.models import Max
+﻿from django.db.models import Max
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
@@ -17,21 +18,134 @@ from .models import (
 )
 
 
-@login_required
-def dashboard(request):
-    context = {
-        "classes_count": TimetableClass.objects.filter(active=True).count(),
-        "subjects_count": TimetableSubject.objects.filter(active=True).count(),
-        "teachers_count": TimetableTeacher.objects.filter(active=True).count(),
-        "rooms_count": TimetableRoom.objects.filter(active=True).count(),
-        "requirements_count": LessonRequirement.objects.filter(active=True).count(),
-        "lessons_count": TimetableLesson.objects.count(),
-    }
-    return render(request, "timetable/dashboard.html", context)
+# ============================================================
+# STAFF PERMISSION GATE
+# ============================================================
+#
+# Timetable module access is controlled by the existing
+# Admin Portal Custom Role -> Django Permission system.
+#
+# Operational teacher/class/subject assignment remains
+# separate and is enforced by the relevant views.
 
+def _timetable_permission_allowed(user, codename):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+
+    try:
+        profile = user.profile
+    except Exception:
+        return False
+
+    if getattr(profile, "role", "") == "ADMIN":
+        return True
+
+    custom_role = getattr(profile, "custom_role", None)
+    if not custom_role or not custom_role.is_active:
+        return False
+
+    return custom_role.permissions.filter(
+        codename=codename,
+        content_type__app_label="timetable",
+    ).exists()
+
+def _timetable_admin_allowed(user):
+    if not user or not user.is_authenticated:
+        return False
+
+    if user.is_superuser:
+        return True
+
+    try:
+        profile = user.profile
+    except Exception:
+        return False
+
+    return getattr(profile, "role", "") == "ADMIN"
+
+
+def _timetable_admin_redirect(request):
+    if _timetable_admin_allowed(request.user):
+        return None
+
+    messages.error(
+        request,
+        "Only timetable administrators can perform this whole-school operation.",
+    )
+    return redirect("accounts:staff_dashboard")
+
+def _timetable_permission_redirect(request, codename):
+    if _timetable_permission_allowed(request.user, codename):
+        return None
+
+    messages.error(
+        request,
+        "You do not have permission to access this timetable section.",
+    )
+    return redirect("accounts:staff_dashboard")
+
+def dashboard(request):
+    denied = _timetable_permission_redirect(request, "view_timetablelesson")
+    if denied:
+        return denied
+
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+
+    if is_timetable_admin:
+        context = {
+            "classes_count": TimetableClass.objects.filter(active=True).count(),
+            "subjects_count": TimetableSubject.objects.filter(active=True).count(),
+            "teachers_count": TimetableTeacher.objects.filter(active=True).count(),
+            "rooms_count": TimetableRoom.objects.filter(active=True).count(),
+            "requirements_count": LessonRequirement.objects.filter(active=True).count(),
+            "lessons_count": TimetableLesson.objects.count(),
+        }
+    else:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+        context = {
+            "classes_count": TimetableClass.objects.filter(
+                active=True,
+                lesson_requirements__teacher=staff_teacher,
+            ).distinct().count(),
+            "subjects_count": TimetableSubject.objects.filter(
+                active=True,
+                lesson_requirements__teacher=staff_teacher,
+            ).distinct().count(),
+            "teachers_count": 1,
+            "rooms_count": TimetableRoom.objects.filter(
+                active=True,
+                lesson_requirements__teacher=staff_teacher,
+            ).distinct().count(),
+            "requirements_count": LessonRequirement.objects.filter(
+                active=True,
+                teacher=staff_teacher,
+            ).count(),
+            "lessons_count": TimetableLesson.objects.filter(
+                teacher=staff_teacher,
+            ).count(),
+        }
+
+    context["is_timetable_admin"] = is_timetable_admin
+
+    return render(request, "timetable/dashboard.html", context)
 
 @login_required
 def setup(request):
+    denied = _timetable_permission_redirect(request, "view_timetableconfiguration")
+    if denied:
+        return denied
     from academic.models import AcademicYear, Term
     from .models import TimetableTerm
 
@@ -148,6 +262,10 @@ def get_selected_timetable_term(request):
     )
 
 def classes(request):
+    denied = _timetable_permission_redirect(request, "view_timetableclass")
+    if denied:
+        return denied
+
     items = TimetableClass.objects.all()
     return render(request, "timetable/list.html", {
         "title": "Classes & Streams",
@@ -159,6 +277,9 @@ def classes(request):
 
 @login_required
 def subjects(request):
+    denied = _timetable_permission_redirect(request, "view_timetablesubject")
+    if denied:
+        return denied
     items = TimetableSubject.objects.all()
     return render(request, "timetable/list.html", {
         "title": "Subjects",
@@ -170,6 +291,9 @@ def subjects(request):
 
 @login_required
 def teachers(request):
+    denied = _timetable_permission_redirect(request, "view_timetableteacher")
+    if denied:
+        return denied
     items = TimetableTeacher.objects.all()
     return render(request, "timetable/list.html", {
         "title": "Teachers",
@@ -181,6 +305,9 @@ def teachers(request):
 
 @login_required
 def rooms(request):
+    denied = _timetable_permission_redirect(request, "view_timetableroom")
+    if denied:
+        return denied
     items = TimetableRoom.objects.all()
     return render(request, "timetable/list.html", {
         "title": "Rooms",
@@ -192,6 +319,9 @@ def rooms(request):
 
 @login_required
 def requirements(request):
+    denied = _timetable_permission_redirect(request, "view_lessonrequirement")
+    if denied:
+        return denied
     items = LessonRequirement.objects.select_related(
         "class_group",
         "subject",
@@ -205,6 +335,9 @@ def requirements(request):
 
 @login_required
 def availability(request):
+    denied = _timetable_permission_redirect(request, "view_teacheravailability")
+    if denied:
+        return denied
     items = TeacherAvailability.objects.select_related(
         "teacher",
         "day",
@@ -216,9 +349,26 @@ def availability(request):
 
 
 @login_required
-@login_required
-@login_required
 def workspace(request):
+    denied = _timetable_permission_redirect(request, "view_timetablelesson")
+    if denied:
+        return denied
+
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+    staff_teacher = None
+
+    if not is_timetable_admin:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
     from .models import (
         TimetableLesson,
         TimetableDay,
@@ -289,6 +439,11 @@ def workspace(request):
             term=term,
             is_active=True,
         )
+
+        if not is_timetable_admin:
+            lesson_qs = lesson_qs.filter(
+                teacher=staff_teacher
+            )
 
         if active_version:
             lesson_qs = lesson_qs.filter(
@@ -424,6 +579,13 @@ def workspace(request):
                 "day_rowspan": len(day_rows),
             })
 
+    workspace_conflict_count = conflict_count if is_timetable_admin else 0
+    workspace_conflicts = (
+        conflict_result.get("conflicts", [])
+        if is_timetable_admin
+        else []
+    )
+
     return render(
         request,
         "timetable/workspace.html",
@@ -439,11 +601,9 @@ def workspace(request):
             "draft_version": draft_version,
             "published_version": published_for_term,
             "active_version": active_version,
-            "conflict_count": conflict_count,
-            "conflicts": conflict_result.get(
-                "conflicts",
-                []
-            ),
+            "is_timetable_admin": is_timetable_admin,
+            "conflict_count": workspace_conflict_count,
+            "conflicts": workspace_conflicts,
         },
     )
 
@@ -541,6 +701,72 @@ def _crud_label(key):
     return CRUD_LABELS.get(key, key.replace("_", " ").title())
 
 
+# ============================================================
+# GENERIC TIMETABLE CRUD PERMISSION GATE
+# ============================================================
+#
+# Generic /manage/<model_key>/ routes use the existing
+# Admin Portal -> Custom Role -> Django Permission system.
+#
+# Module permission and operational teacher/class/subject
+# scope remain separate.
+# ============================================================
+
+CRUD_PERMISSION_CODENAMES = {
+    "terms": "timetableterm",
+    "days": "timetableday",
+    "periods": "timetableperiod",
+    "classes": "timetableclass",
+    "subjects": "timetablesubject",
+    "teachers": "timetableteacher",
+    "rooms": "timetableroom",
+    "requirements": "lessonrequirement",
+    "availability": "teacheravailability",
+}
+
+
+def _crud_permission_allowed(user, model_key, action):
+    if user.is_superuser:
+        return True
+
+    try:
+        profile = user.profile
+    except Exception:
+        return False
+
+    if getattr(profile, "role", "") == "ADMIN":
+        return True
+
+    custom_role = getattr(profile, "custom_role", None)
+
+    if not custom_role or not custom_role.is_active:
+        return False
+
+    model_codename = CRUD_PERMISSION_CODENAMES.get(model_key)
+
+    if not model_codename:
+        return False
+
+    return custom_role.permissions.filter(
+        codename=f"{action}_{model_codename}",
+        content_type__app_label="timetable",
+    ).exists()
+
+
+def _crud_permission_redirect(request, model_key, action):
+    if _crud_permission_allowed(
+        request.user,
+        model_key,
+        action,
+    ):
+        return None
+
+    messages.error(
+        request,
+        "You do not have permission to access this timetable section.",
+    )
+    return redirect("accounts:staff_dashboard")
+
 def _model_fields_for_form(model):
     fields = []
 
@@ -614,6 +840,10 @@ def _make_crud_form(model, instance=None):
 
 @login_required
 def control_centre(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
     cards = []
 
     for key, model in CRUD_MODELS.items():
@@ -638,9 +868,16 @@ def control_centre(request):
         },
     )
 
-
 @login_required
 def crud_list(request, model_key):
+    denied = _crud_permission_redirect(
+        request,
+        model_key,
+        "view",
+    )
+
+    if denied:
+        return denied
     from django.contrib import messages
 
     if model_key not in CRUD_MODELS:
@@ -700,6 +937,16 @@ def crud_list(request, model_key):
 
 @login_required
 def crud_create(request, model_key):
+    action = "add" if request.method == "POST" else "view"
+
+    denied = _crud_permission_redirect(
+        request,
+        model_key,
+        action,
+    )
+
+    if denied:
+        return denied
     model = _crud_model(model_key)
 
     if model is None:
@@ -852,6 +1099,16 @@ def _cascade_period_times(model, edited_object):
 
 @login_required
 def crud_edit(request, model_key, pk):
+    action = "change" if request.method == "POST" else "view"
+
+    denied = _crud_permission_redirect(
+        request,
+        model_key,
+        action,
+    )
+
+    if denied:
+        return denied
     model = _crud_model(model_key)
 
     if model is None:
@@ -899,6 +1156,16 @@ def crud_edit(request, model_key, pk):
 
 @login_required
 def crud_delete(request, model_key, pk):
+    action = "delete" if request.method == "POST" else "view"
+
+    denied = _crud_permission_redirect(
+        request,
+        model_key,
+        action,
+    )
+
+    if denied:
+        return denied
     model = _crud_model(model_key)
 
     if model is None:
@@ -938,6 +1205,13 @@ def crud_delete(request, model_key, pk):
 
 @login_required
 def publish_timetable(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
+    denied = _timetable_permission_redirect(request, "change_timetableversion")
+    if denied:
+        return denied
     from django.contrib import messages
 
     from .complete_timetable_system import (
@@ -1064,6 +1338,13 @@ def publish_timetable(request):
 
 @login_required
 def generate_timetable(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
+    denied = _timetable_permission_redirect(request, "add_timetablelesson")
+    if denied:
+        return denied
     from django.contrib import messages
     from .generator_engine import TimetableGenerator
 
@@ -1130,7 +1411,19 @@ def generate_timetable(request):
     return redirect("timetable:workspace")
 
 
+@login_required
 def clear_generated_timetable(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
+    denied = _timetable_permission_redirect(
+        request,
+        "delete_timetablelesson",
+    )
+
+    if denied:
+        return denied
     from django.contrib import messages
     from .advanced_models import TimetableVersion
 
@@ -1289,9 +1582,20 @@ from .generator_engine import generate_timetable as run_timetable_generator
 
 @login_required
 def requirement_builder(request):
+    denied = _timetable_permission_redirect(request, "view_lessonrequirement")
+    if denied:
+        return denied
     classes = TimetableClass.objects.filter(active=True).order_by("name", "stream")
     subjects = TimetableSubject.objects.filter(active=True).order_by("name")
-    teachers = TimetableTeacher.objects.filter(active=True).order_by("name")
+    if is_timetable_admin:
+        teachers = TimetableTeacher.objects.filter(
+            active=True
+        ).order_by("name")
+    else:
+        teachers = TimetableTeacher.objects.filter(
+            pk=staff_teacher.pk,
+            active=True,
+        )
     rooms = TimetableRoom.objects.filter(active=True).order_by("name")
     days = TimetableDay.objects.filter(active=True).order_by("order")
 
@@ -1393,7 +1697,19 @@ def requirement_builder(request):
 
 
 
+@login_required
 def clear_generated_timetable(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
+    denied = _timetable_permission_redirect(
+        request,
+        "delete_timetablelesson",
+    )
+
+    if denied:
+        return denied
     if request.method != "POST":
         return redirect("timetable:workspace")
 
@@ -1422,6 +1738,13 @@ def clear_generated_timetable(request):
 
 @login_required
 def conflicts(request):
+    denied = _timetable_permission_redirect(
+        request,
+        "view_timetablelesson",
+    )
+    if denied:
+        return denied
+
     term = TimetableTerm.objects.filter(active=True).order_by("-id").first()
 
     lessons = TimetableLesson.objects.none()
@@ -1873,7 +2196,15 @@ def timetable_conflict_engine(term):
     return conflicts
 
 
+@login_required
 def timetable_conflicts_page(request):
+    denied = _timetable_permission_redirect(
+        request,
+        "view_timetablelesson",
+    )
+
+    if denied:
+        return denied
 
     term = get_selected_timetable_term(request)
 
@@ -1917,7 +2248,19 @@ def timetable_conflicts_page(request):
     )
 
 
+@login_required
 def generation_control(request):
+    denied = _timetable_admin_redirect(request)
+    if denied:
+        return denied
+
+    denied = _timetable_permission_redirect(
+        request,
+        "view_timetablelesson",
+    )
+
+    if denied:
+        return denied
     from .complete_timetable_system import (
         check_timetable,
         current_draft,
@@ -2031,19 +2374,69 @@ def generation_control(request):
     )
 
 
+@login_required
 def timetable_requirement_edit(request, pk):
-    requirement = get_object_or_404(LessonRequirement, pk=pk)
+    if request.method == "POST":
+        denied = _timetable_permission_redirect(
+            request,
+            "change_lessonrequirement",
+        )
+    else:
+        denied = _timetable_permission_redirect(
+            request,
+            "view_lessonrequirement",
+        )
+
+    if denied:
+        return denied
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+    staff_teacher = None
+
+    if not is_timetable_admin:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+    if is_timetable_admin:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+        )
+    else:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+            teacher=staff_teacher,
+        )
 
     classes = TimetableClass.objects.filter(active=True).order_by("name", "stream")
     subjects = TimetableSubject.objects.filter(active=True).order_by("name")
-    teachers = TimetableTeacher.objects.filter(active=True).order_by("name")
+    if is_timetable_admin:
+        teachers = TimetableTeacher.objects.filter(
+            active=True
+        ).order_by("name")
+    else:
+        teachers = TimetableTeacher.objects.filter(
+            pk=staff_teacher.pk,
+            active=True,
+        )
     rooms = TimetableRoom.objects.filter(active=True).order_by("name")
     days = TimetableDay.objects.filter(active=True).order_by("order")
 
     if request.method == "POST":
         class_id = request.POST.get("class_id")
         subject_id = request.POST.get("subject_id")
-        teacher_id = request.POST.get("teacher_id") or None
+        if is_timetable_admin:
+            teacher_id = request.POST.get("teacher_id") or None
+        else:
+            teacher_id = staff_teacher.pk
         room_id = request.POST.get("room_id") or None
 
         single_lessons = int(request.POST.get("single_lessons") or 0)
@@ -2113,8 +2506,40 @@ def timetable_requirement_edit(request, pk):
     )
 
 
+@login_required
 def timetable_requirement_delete(request, pk):
-    requirement = get_object_or_404(LessonRequirement, pk=pk)
+    denied = _timetable_permission_redirect(
+        request,
+        "delete_lessonrequirement",
+    )
+    if denied:
+        return denied
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+    staff_teacher = None
+
+    if not is_timetable_admin:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+    if is_timetable_admin:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+        )
+    else:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+            teacher=staff_teacher,
+        )
 
     if request.method == "POST":
         requirement.delete()
@@ -2126,8 +2551,40 @@ def timetable_requirement_delete(request, pk):
     return redirect("timetable:requirements")
 
 
+@login_required
 def timetable_requirement_toggle(request, pk):
-    requirement = get_object_or_404(LessonRequirement, pk=pk)
+    denied = _timetable_permission_redirect(
+        request,
+        "change_lessonrequirement",
+    )
+    if denied:
+        return denied
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+    staff_teacher = None
+
+    if not is_timetable_admin:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+    if is_timetable_admin:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+        )
+    else:
+        requirement = get_object_or_404(
+            LessonRequirement,
+            pk=pk,
+            teacher=staff_teacher,
+        )
 
     if request.method == "POST":
         requirement.active = not requirement.active
@@ -2143,12 +2600,48 @@ def timetable_requirement_toggle(request, pk):
     return redirect("timetable:requirements")
 
 
+@login_required
 def timetable_requirements_builder(request):
+    if request.method == "POST":
+        denied = _timetable_permission_redirect(
+            request,
+            "add_lessonrequirement",
+        )
+    else:
+        denied = _timetable_permission_redirect(
+            request,
+            "view_lessonrequirement",
+        )
+
+    if denied:
+        return denied
     selected_term = get_selected_timetable_term(request)
+    is_timetable_admin = _timetable_admin_allowed(request.user)
+    staff_teacher = None
+
+    if not is_timetable_admin:
+        from .staff_utils import get_staff_teacher
+
+        staff_teacher = get_staff_teacher(request.user)
+
+        if not staff_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
 
     classes = TimetableClass.objects.filter(active=True).order_by("name", "stream")
     subjects = TimetableSubject.objects.filter(active=True).order_by("name")
-    teachers = TimetableTeacher.objects.filter(active=True).order_by("name")
+    if is_timetable_admin:
+        teachers = TimetableTeacher.objects.filter(
+            active=True
+        ).order_by("name")
+    else:
+        teachers = TimetableTeacher.objects.filter(
+            pk=staff_teacher.pk,
+            active=True,
+        )
     rooms = TimetableRoom.objects.filter(active=True).order_by("name")
     days = TimetableDay.objects.filter(active=True).order_by("order")
 
@@ -2156,7 +2649,10 @@ def timetable_requirements_builder(request):
 
         class_id = request.POST.get("class_id")
         subject_id = request.POST.get("subject_id")
-        teacher_id = request.POST.get("teacher_id") or None
+        if is_timetable_admin:
+            teacher_id = request.POST.get("teacher_id") or None
+        else:
+            teacher_id = staff_teacher.pk
         room_id = request.POST.get("room_id") or None
 
         single_lessons = int(request.POST.get("single_lessons") or 0)
@@ -2233,8 +2729,14 @@ def timetable_requirements_builder(request):
                     "timetable:requirements"
                 )
 
+    requirement_qs = LessonRequirement.objects
+
+    if not is_timetable_admin:
+        requirement_qs = requirement_qs.filter(
+            teacher=staff_teacher
+        )
     requirements = list(
-        LessonRequirement.objects
+        requirement_qs
         .select_related(
             "class_group",
             "subject",
@@ -2470,6 +2972,9 @@ def timetable_workspace(request):
 
 @login_required
 def timetable_lesson_edit(request, pk):
+    denied = _timetable_permission_redirect(request, "change_timetablelesson")
+    if denied:
+        return denied
     from django.contrib import messages
     from .models import (
         TimetableLesson,
@@ -2558,6 +3063,9 @@ def timetable_lesson_edit(request, pk):
 
 @login_required
 def timetable_lesson_lock(request, pk):
+    denied = _timetable_permission_redirect(request, "change_timetablelesson")
+    if denied:
+        return denied
     from django.contrib import messages
     from .models import TimetableLesson
 
@@ -2583,6 +3091,9 @@ def timetable_lesson_lock(request, pk):
 
 @login_required
 def timetable_lesson_delete(request, pk):
+    denied = _timetable_permission_redirect(request, "delete_timetablelesson")
+    if denied:
+        return denied
     from django.contrib import messages
     from .models import TimetableLesson
 
@@ -2716,14 +3227,84 @@ TIMETABLE_WIZARD_STEPS = [
 
 
 def timetable_teacher_page(request):
-    teacher_id = request.GET.get("teacher")
+    if request.method == "POST":
+        action = request.POST.get("wizard_action", "").strip()
 
+        if action == "delete_lesson":
+            permission_codename = "delete_lessonrequirement"
+
+        elif action == "save_lesson":
+            requirement_id = request.POST.get("requirement_id")
+
+            if requirement_id and requirement_id.isdigit():
+                permission_codename = "change_lessonrequirement"
+            else:
+                permission_codename = "add_lessonrequirement"
+
+        elif action == "bulk_save_lessons":
+            permission_codename = "add_lessonrequirement"
+
+        else:
+            permission_codename = "view_lessonrequirement"
+
+        denied = _timetable_permission_redirect(
+            request,
+            permission_codename,
+        )
+
+        if denied:
+            return denied
+
+    else:
+        denied = _timetable_permission_redirect(
+            request,
+            "view_lessonrequirement",
+        )
+
+        if denied:
+            return denied
+    # Resolve the teacher scope.
+    #
+    # ADMIN/SUPERUSER:
+    #   May select and manage any active timetable teacher.
+    #
+    # STAFF:
+    #   Must use the canonical TimetableTeacher linked through
+    #   the authenticated user's HR Employee record.
+    from .staff_utils import get_staff_teacher
+
+    is_timetable_admin = request.user.is_superuser
+
+    if not is_timetable_admin:
+        try:
+            profile = request.user.profile
+            is_timetable_admin = (
+                getattr(profile, "role", "") == "ADMIN"
+            )
+        except Exception:
+            is_timetable_admin = False
+
+    teacher_id = request.GET.get("teacher")
     selected_teacher = None
-    if teacher_id and str(teacher_id).isdigit():
-        selected_teacher = TimetableTeacher.objects.filter(
-            pk=int(teacher_id),
-            active=True
-        ).first()
+
+    if is_timetable_admin:
+        if teacher_id and str(teacher_id).isdigit():
+            selected_teacher = TimetableTeacher.objects.filter(
+                pk=int(teacher_id),
+                active=True
+            ).first()
+    else:
+        selected_teacher = get_staff_teacher(request.user)
+
+        if not selected_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+        # Ignore any teacher ID supplied by the staff user.
+        teacher_id = str(selected_teacher.pk)
 
     if request.method == "POST":
         action = request.POST.get("wizard_action", "").strip()
@@ -2734,6 +3315,7 @@ def timetable_teacher_page(request):
             if requirement_id and requirement_id.isdigit():
                 requirement = LessonRequirement.objects.filter(
                     pk=int(requirement_id),
+                    teacher=selected_teacher,
                     active=True
                 ).first()
 
@@ -2743,7 +3325,6 @@ def timetable_teacher_page(request):
                         request,
                         "Subject assignment deleted successfully."
                     )
-
             return redirect(
                 reverse("timetable:teacher_page")
                 + "?teacher="
@@ -2752,20 +3333,35 @@ def timetable_teacher_page(request):
 
         if action == "bulk_save_lessons":
 
-            teacher_pk = request.POST.get("teacher_id")
+            if is_timetable_admin:
+                teacher_pk = request.POST.get("teacher_id")
 
-            if not teacher_pk or not teacher_pk.isdigit():
-                messages.error(request, "Please select a valid teacher.")
-                return redirect(reverse("timetable:teacher_page"))
+                if not teacher_pk or not teacher_pk.isdigit():
+                    messages.error(
+                        request,
+                        "Please select a valid teacher."
+                    )
+                    return redirect(
+                        reverse("timetable:teacher_page")
+                    )
 
-            teacher = TimetableTeacher.objects.filter(
-                pk=int(teacher_pk),
-                active=True
-            ).first()
+                teacher = TimetableTeacher.objects.filter(
+                    pk=int(teacher_pk),
+                    active=True
+                ).first()
 
-            if not teacher:
-                messages.error(request, "Teacher not found.")
-                return redirect(reverse("timetable:teacher_page"))
+                if not teacher:
+                    messages.error(
+                        request,
+                        "Teacher not found."
+                    )
+                    return redirect(
+                        reverse("timetable:teacher_page")
+                    )
+            else:
+                # Staff cannot choose another teacher through POST.
+                teacher = selected_teacher
+                teacher_pk = str(teacher.pk)
 
             row_count_value = request.POST.get("row_count", "0")
 
@@ -2908,7 +3504,12 @@ def timetable_teacher_page(request):
             notes_value = request.POST.get("notes", "")
 
             try:
-                teacher_pk = int(teacher_id)
+                if is_timetable_admin:
+                    teacher_pk = int(teacher_id)
+                else:
+                    # Staff always save against their canonical teacher.
+                    teacher_pk = int(selected_teacher.pk)
+
                 subject_pk = int(subject_value)
                 class_pk = int(class_value)
 
@@ -2930,10 +3531,13 @@ def timetable_teacher_page(request):
                     + str(teacher_id)
                 )
 
-            teacher = TimetableTeacher.objects.filter(
-                pk=teacher_pk,
-                active=True
-            ).first()
+            if is_timetable_admin:
+                teacher = TimetableTeacher.objects.filter(
+                    pk=teacher_pk,
+                    active=True
+                ).first()
+            else:
+                teacher = selected_teacher
 
             subject = TimetableSubject.objects.filter(
                 pk=subject_pk,
@@ -3006,9 +3610,9 @@ def timetable_teacher_page(request):
             if requirement_id and requirement_id.isdigit():
                 requirement = LessonRequirement.objects.filter(
                     pk=int(requirement_id),
+                    teacher=teacher,
                     active=True
                 ).first()
-
             if requirement:
 
                 requirement.teacher = teacher
@@ -3093,7 +3697,14 @@ def timetable_teacher_page(request):
         editing_requirement = LessonRequirement.objects.filter(
             pk=int(edit_id),
             active=True
-        ).select_related(
+        )
+
+        if not is_timetable_admin:
+            editing_requirement = editing_requirement.filter(
+                teacher=selected_teacher
+            )
+
+        editing_requirement = editing_requirement.select_related(
             "teacher",
             "subject",
             "class_group",
@@ -3102,9 +3713,16 @@ def timetable_teacher_page(request):
         ).first()
 
     context = {
-        "teachers": TimetableTeacher.objects.filter(
-            active=True
-        ).order_by("name"),
+        "teachers": (
+            TimetableTeacher.objects.filter(
+                active=True
+            ).order_by("name")
+            if is_timetable_admin
+            else TimetableTeacher.objects.filter(
+                pk=selected_teacher.pk,
+                active=True
+            )
+        ),
 
         "subjects": TimetableSubject.objects.filter(
             active=True
@@ -3136,22 +3754,82 @@ def timetable_teacher_page(request):
     )
 
 
+@login_required
 def timetable_subject_page(request):
-    subject_id = request.GET.get("subject")
+    from .staff_utils import get_staff_teacher
 
+    # ---------------------------------------------------------
+    # ADMIN / STAFF SCOPE
+    # ---------------------------------------------------------
+    is_timetable_admin = request.user.is_superuser
+
+    if not is_timetable_admin:
+        try:
+            profile = request.user.profile
+            is_timetable_admin = (
+                getattr(profile, "role", "") == "ADMIN"
+            )
+        except Exception:
+            is_timetable_admin = False
+
+    selected_teacher = None
+
+    if not is_timetable_admin:
+        selected_teacher = get_staff_teacher(request.user)
+
+        if not selected_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+    # ---------------------------------------------------------
+    # PERMISSION
+    # ---------------------------------------------------------
+    if request.method == "POST":
+        denied = _timetable_permission_redirect(
+            request,
+            "change_lessonrequirement",
+        )
+    else:
+        denied = _timetable_permission_redirect(
+            request,
+            "view_lessonrequirement",
+        )
+
+    if denied:
+        return denied
+
+    subject_id = request.GET.get("subject")
     selected_subject = None
 
     if subject_id and str(subject_id).isdigit():
         selected_subject = TimetableSubject.objects.filter(
             pk=int(subject_id),
-            active=True
+            active=True,
         ).first()
 
+    # ---------------------------------------------------------
+    # POST ACTIONS
+    # ---------------------------------------------------------
     if request.method == "POST":
 
         action = request.POST.get("action", "").strip()
 
         if action == "reassign_teacher":
+
+            # Staff are not allowed to reassign lessons.
+            if not is_timetable_admin:
+                messages.error(
+                    request,
+                    "Only timetable administrators can reassign teachers."
+                )
+                return redirect(
+                    reverse("timetable:subject_page")
+                    + "?subject="
+                    + str(subject_id)
+                )
 
             requirement_id = request.POST.get("requirement_id")
             new_teacher_id = request.POST.get("new_teacher")
@@ -3165,12 +3843,27 @@ def timetable_subject_page(request):
 
                 requirement = LessonRequirement.objects.filter(
                     pk=int(requirement_id),
-                    active=True
+                    active=True,
                 ).first()
+
+                if (
+                    requirement is None
+                    or selected_subject is None
+                    or requirement.subject_id != selected_subject.id
+                ):
+                    messages.error(
+                        request,
+                        "This lesson assignment does not belong to the selected subject."
+                    )
+                    return redirect(
+                        reverse("timetable:subject_page")
+                        + "?subject="
+                        + str(subject_id)
+                    )
 
                 new_teacher = TimetableTeacher.objects.filter(
                     pk=int(new_teacher_id),
-                    active=True
+                    active=True,
                 ).first()
 
                 if not requirement or not new_teacher:
@@ -3183,7 +3876,7 @@ def timetable_subject_page(request):
                     teacher=new_teacher,
                     subject=requirement.subject,
                     class_group=requirement.class_group,
-                    active=True
+                    active=True,
                 ).exclude(
                     pk=requirement.pk
                 ).exists():
@@ -3194,9 +3887,10 @@ def timetable_subject_page(request):
                     )
 
                 else:
-
                     requirement.teacher = new_teacher
-                    requirement.save(update_fields=["teacher"])
+                    requirement.save(
+                        update_fields=["teacher"]
+                    )
 
                     messages.success(
                         request,
@@ -3215,6 +3909,9 @@ def timetable_subject_page(request):
                 + str(subject_id)
             )
 
+    # ---------------------------------------------------------
+    # REQUIREMENTS
+    # ---------------------------------------------------------
     subject_requirements = LessonRequirement.objects.filter(
         active=True
     ).select_related(
@@ -3230,43 +3927,109 @@ def timetable_subject_page(request):
             subject=selected_subject
         )
 
+    # STAFF MAY ONLY SEE THEIR OWN ASSIGNMENTS.
+    if not is_timetable_admin:
+        subject_requirements = subject_requirements.filter(
+            teacher=selected_teacher
+        )
+
     subject_requirements = subject_requirements.order_by(
         "class_group__name",
         "teacher__name",
         "id",
     )
 
+    # ---------------------------------------------------------
+    # TEACHER LIST
+    # ---------------------------------------------------------
+    if is_timetable_admin:
+        teachers = TimetableTeacher.objects.filter(
+            active=True
+        ).order_by("name")
+    else:
+        teachers = TimetableTeacher.objects.filter(
+            pk=selected_teacher.pk,
+            active=True,
+        )
+
     context = {
         "subjects": TimetableSubject.objects.filter(
             active=True
         ).order_by("name"),
 
-        "teachers": TimetableTeacher.objects.filter(
-            active=True
-        ).order_by("name"),
+        "teachers": teachers,
 
         "selected_subject": selected_subject,
         "subject_requirements": subject_requirements,
+
+        "is_timetable_admin": is_timetable_admin,
+        "selected_teacher": selected_teacher,
     }
 
     return render(
         request,
         "timetable/subject_assignments.html",
-        context
+        context,
     )
 
-
 def timetable_class_page(request):
-    class_id = request.GET.get("class")
+    from .staff_utils import get_staff_teacher
 
+    # ---------------------------------------------------------
+    # ADMIN / STAFF SCOPE
+    # ---------------------------------------------------------
+    is_timetable_admin = request.user.is_superuser
+
+    if not is_timetable_admin:
+        try:
+            profile = request.user.profile
+            is_timetable_admin = (
+                getattr(profile, "role", "") == "ADMIN"
+            )
+        except Exception:
+            is_timetable_admin = False
+
+    selected_teacher = None
+
+    if not is_timetable_admin:
+        selected_teacher = get_staff_teacher(request.user)
+
+        if not selected_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
+    # ---------------------------------------------------------
+    # PERMISSION
+    # ---------------------------------------------------------
+    if request.method == "POST":
+        denied = _timetable_permission_redirect(
+            request,
+            "change_lessonrequirement",
+        )
+    else:
+        denied = _timetable_permission_redirect(
+            request,
+            "view_lessonrequirement",
+        )
+
+    if denied:
+        return denied
+
+    class_id = request.GET.get("class")
     selected_class = None
 
     if class_id and str(class_id).isdigit():
         selected_class = TimetableClass.objects.filter(
             pk=int(class_id),
-            active=True
+            active=True,
         ).first()
 
+    # ---------------------------------------------------------
+    # POST ACTIONS
+    # ---------------------------------------------------------
     if request.method == "POST":
 
         action = request.POST.get("action", "").strip()
@@ -3288,13 +4051,34 @@ def timetable_class_page(request):
 
             requirement = LessonRequirement.objects.filter(
                 pk=int(requirement_id),
-                active=True
+                active=True,
             ).first()
 
-            if not requirement:
+            if (
+                requirement is None
+                or selected_class is None
+                or requirement.class_group_id != selected_class.id
+            ):
                 messages.error(
                     request,
-                    "Lesson assignment not found."
+                    "This lesson assignment does not belong to the selected class."
+                )
+                return redirect(
+                    reverse("timetable:class_page")
+                    + "?class="
+                    + str(class_id)
+                )
+
+            # -------------------------------------------------
+            # STAFF OWNERSHIP CHECK
+            # -------------------------------------------------
+            if (
+                not is_timetable_admin
+                and requirement.teacher_id != selected_teacher.id
+            ):
+                messages.error(
+                    request,
+                    "You can only edit your own timetable lesson assignments."
                 )
                 return redirect(
                     reverse("timetable:class_page")
@@ -3303,23 +4087,51 @@ def timetable_class_page(request):
                 )
 
             try:
-                subject_id = int(request.POST.get("subject", ""))
-                teacher_id = int(request.POST.get("teacher", ""))
+                subject_id = int(
+                    request.POST.get("subject", "")
+                )
+
+                teacher_id = int(
+                    request.POST.get("teacher", "")
+                )
+
                 lessons = max(
                     0,
-                    int(request.POST.get("lessons_per_week", "0"))
+                    int(
+                        request.POST.get(
+                            "lessons_per_week",
+                            "0",
+                        )
+                    ),
                 )
+
                 doubles = max(
                     0,
-                    int(request.POST.get("double_lessons_per_week", "0"))
+                    int(
+                        request.POST.get(
+                            "double_lessons_per_week",
+                            "0",
+                        )
+                    ),
                 )
+
                 duration = max(
                     1,
-                    int(request.POST.get("duration_periods", "1"))
+                    int(
+                        request.POST.get(
+                            "duration_periods",
+                            "1",
+                        )
+                    ),
                 )
+
                 priority = int(
-                    request.POST.get("priority", "0")
+                    request.POST.get(
+                        "priority",
+                        "0",
+                    )
                 )
+
             except (TypeError, ValueError):
 
                 messages.error(
@@ -3335,29 +4147,52 @@ def timetable_class_page(request):
 
             subject = TimetableSubject.objects.filter(
                 pk=subject_id,
-                active=True
+                active=True,
             ).first()
 
             teacher = TimetableTeacher.objects.filter(
                 pk=teacher_id,
-                active=True
+                active=True,
             ).first()
+
+            # -------------------------------------------------
+            # STAFF CANNOT SUBMIT ANOTHER TEACHER
+            # -------------------------------------------------
+            if not is_timetable_admin:
+
+                if (
+                    teacher is None
+                    or teacher.id != selected_teacher.id
+                ):
+                    messages.error(
+                        request,
+                        "You can only assign lessons to your own timetable teacher."
+                    )
+                    return redirect(
+                        reverse("timetable:class_page")
+                        + "?class="
+                        + str(class_id)
+                    )
+
+                teacher = selected_teacher
 
             room_id = request.POST.get("room", "")
             day_id = request.POST.get("preferred_day", "")
 
             room = None
+
             if room_id and room_id.isdigit():
                 room = TimetableRoom.objects.filter(
                     pk=int(room_id),
-                    active=True
+                    active=True,
                 ).first()
 
             preferred_day = None
+
             if day_id and day_id.isdigit():
                 preferred_day = TimetableDay.objects.filter(
                     pk=int(day_id),
-                    active=True
+                    active=True,
                 ).first()
 
             if not subject or not teacher:
@@ -3376,13 +4211,12 @@ def timetable_class_page(request):
                 teacher=teacher,
                 subject=subject,
                 class_group=requirement.class_group,
-                active=True
+                active=True,
             ).exclude(
                 pk=requirement.pk
             ).exists()
 
             if duplicate:
-
                 messages.error(
                     request,
                     "This subject is already assigned to this teacher for this class."
@@ -3403,13 +4237,12 @@ def timetable_class_page(request):
             requirement.priority = priority
             requirement.room = room
             requirement.preferred_day = preferred_day
-            requirement.practical = request.POST.get(
-                "practical"
-            ) == "1"
-
+            requirement.practical = (
+                request.POST.get("practical") == "1"
+            )
             requirement.notes = request.POST.get(
                 "notes",
-                ""
+                "",
             )
 
             requirement.save()
@@ -3425,16 +4258,25 @@ def timetable_class_page(request):
                 + str(requirement.class_group_id)
             )
 
+    # ---------------------------------------------------------
+    # EDITING
+    # ---------------------------------------------------------
     edit_id = request.GET.get("edit")
-
     editing_requirement = None
 
     if edit_id and edit_id.isdigit():
 
         editing_requirement = LessonRequirement.objects.filter(
             pk=int(edit_id),
-            active=True
-        ).select_related(
+            active=True,
+        )
+
+        if not is_timetable_admin:
+            editing_requirement = editing_requirement.filter(
+                teacher=selected_teacher
+            )
+
+        editing_requirement = editing_requirement.select_related(
             "teacher",
             "subject",
             "class_group",
@@ -3443,11 +4285,17 @@ def timetable_class_page(request):
         ).first()
 
         if editing_requirement and selected_class:
-            if editing_requirement.class_group_id != selected_class.id:
+            if (
+                editing_requirement.class_group_id
+                != selected_class.id
+            ):
                 editing_requirement = None
 
+    # ---------------------------------------------------------
+    # REQUIREMENTS
+    # ---------------------------------------------------------
     class_requirements = LessonRequirement.objects.filter(
-        active=True
+        active=True,
     ).select_related(
         "teacher",
         "subject",
@@ -3461,22 +4309,38 @@ def timetable_class_page(request):
             class_group=selected_class
         )
 
+    if not is_timetable_admin:
+        class_requirements = class_requirements.filter(
+            teacher=selected_teacher
+        )
+
     class_requirements = class_requirements.order_by(
         "subject__name",
         "teacher__name",
         "id",
     )
 
+    # ---------------------------------------------------------
+    # TEACHERS
+    # ---------------------------------------------------------
+    if is_timetable_admin:
+        teachers = TimetableTeacher.objects.filter(
+            active=True
+        ).order_by("name")
+    else:
+        teachers = TimetableTeacher.objects.filter(
+            pk=selected_teacher.pk,
+            active=True,
+        )
+
     context = {
         "classes": TimetableClass.objects.filter(
             active=True
-        ).order_by("name", "stream"),
-
-        "subjects": TimetableSubject.objects.filter(
-            active=True
         ).order_by("name"),
 
-        "teachers": TimetableTeacher.objects.filter(
+        "teachers": teachers,
+
+        "subjects": TimetableSubject.objects.filter(
             active=True
         ).order_by("name"),
 
@@ -3486,21 +4350,70 @@ def timetable_class_page(request):
 
         "days": TimetableDay.objects.filter(
             active=True
-        ).order_by("order", "id"),
+        ).order_by("order"),
 
         "selected_class": selected_class,
         "class_requirements": class_requirements,
         "editing_requirement": editing_requirement,
+
+        "is_timetable_admin": is_timetable_admin,
+        "selected_teacher": selected_teacher,
     }
 
     return render(
         request,
         "timetable/class_assignments.html",
-        context
+        context,
     )
 
+def _creation_wizard_permission(request, step):
+    """
+    Enforce Django permissions for each timetable creation-wizard step.
+
+    The wizard only controls access to the relevant timetable operation.
+    Operational teacher/class/subject scope remains separate.
+    """
+    step_permissions = {
+        1: "view_timetableterm",
+        2: "view_timetableday",
+        3: "view_timetableperiod",
+        4: "view_timetableclass",
+        5: "view_timetablesubject",
+        6: "view_timetableteacher",
+        7: "view_timetableroom",
+        8: "view_teacheravailability",
+        9: "view_lessonrequirement",
+        10: "view_lessonrequirement",
+        11: "add_timetablelesson",
+        12: "view_timetablelesson",
+        13: "view_timetablelesson",
+        14: "view_timetablelesson",
+    }
+
+    if step in (11, 12, 13, 14):
+        return _timetable_admin_redirect(request)
+
+    permission_codename = step_permissions.get(step)
+
+    if request.method == "POST":
+        if step == 9:
+            permission_codename = "add_lessonrequirement"
+        elif step == 11:
+            permission_codename = "add_timetablelesson"
+
+    if not permission_codename:
+        return None
+
+    return _timetable_permission_redirect(
+        request,
+        permission_codename,
+    )
 
 def timetable_creation_wizard(request, step=1):
+    denied = _creation_wizard_permission(request, step)
+    if denied:
+        return denied
+
     # =====================================================
     # SAFE WIZARD DEFAULTS
     # =====================================================
@@ -3543,6 +4456,33 @@ TeacherAvailability,
     )
 
     # ---------------------------------------------------------
+    # STAFF / ADMIN SCOPE
+    # ---------------------------------------------------------
+    from .staff_utils import get_staff_teacher
+
+    is_timetable_admin = request.user.is_superuser
+
+    if not is_timetable_admin:
+        try:
+            profile = request.user.profile
+            is_timetable_admin = (
+                getattr(profile, "role", "") == "ADMIN"
+            )
+        except Exception:
+            is_timetable_admin = False
+
+    selected_teacher = None
+
+    if not is_timetable_admin:
+        selected_teacher = get_staff_teacher(request.user)
+
+        if not selected_teacher:
+            messages.error(
+                request,
+                "Your staff account is not linked to an active timetable teacher."
+            )
+            return redirect("accounts:staff_dashboard")
+
     # BASIC DATA
     # ---------------------------------------------------------
 
@@ -3650,10 +4590,16 @@ TeacherAvailability,
 
     # STEP 6
     if step == 6 and request.method == "POST":
-        selected_teachers = [
-            int(x) for x in request.POST.getlist("teachers")
-            if str(x).isdigit()
-        ]
+
+        if is_timetable_admin:
+            selected_teachers = [
+                int(x)
+                for x in request.POST.getlist("teachers")
+                if str(x).isdigit()
+            ]
+        else:
+            # Staff cannot choose another timetable teacher.
+            selected_teachers = [selected_teacher.pk]
 
         request.session["timetable_wizard_teachers"] = selected_teachers
         request.session.modified = True
@@ -3683,9 +4629,106 @@ TeacherAvailability,
         if action == "save":
             class_id = request.POST.get("class_group")
             subject_id = request.POST.get("subject")
-            teacher_id = request.POST.get("teacher") or None
+            submitted_teacher_id = request.POST.get("teacher") or None
             room_id = request.POST.get("room") or None
+            preferred_day_id = request.POST.get("preferred_day") or None
 
+            class_group = None
+            subject = None
+            teacher = None
+            room = None
+            preferred_day = None
+
+            # -------------------------------------------------
+            # CLASS
+            # -------------------------------------------------
+            if class_id and str(class_id).isdigit():
+                class_group = (
+                    TimetableClass.objects
+                    .filter(
+                        pk=int(class_id),
+                        active=True,
+                    )
+                    .first()
+                )
+
+            # -------------------------------------------------
+            # SUBJECT
+            # -------------------------------------------------
+            if subject_id and str(subject_id).isdigit():
+                subject = (
+                    TimetableSubject.objects
+                    .filter(
+                        pk=int(subject_id),
+                        active=True,
+                    )
+                    .first()
+                )
+
+            # -------------------------------------------------
+            # TEACHER
+            # -------------------------------------------------
+            if is_timetable_admin:
+                if (
+                    submitted_teacher_id
+                    and str(submitted_teacher_id).isdigit()
+                ):
+                    teacher = (
+                        TimetableTeacher.objects
+                        .filter(
+                            pk=int(submitted_teacher_id),
+                            active=True,
+                        )
+                        .first()
+                    )
+            else:
+                # Staff are permanently scoped to their
+                # authenticated HR-linked timetable teacher.
+                teacher = selected_teacher
+
+                if (
+                    submitted_teacher_id
+                    and str(submitted_teacher_id).isdigit()
+                    and int(submitted_teacher_id) != selected_teacher.pk
+                ):
+                    messages.error(
+                        request,
+                        "You can only create timetable requirements for your own teacher account."
+                    )
+                    return redirect(
+                        "timetable:creation_wizard_step",
+                        9
+                    )
+
+            # -------------------------------------------------
+            # ROOM
+            # -------------------------------------------------
+            if room_id and str(room_id).isdigit():
+                room = (
+                    TimetableRoom.objects
+                    .filter(
+                        pk=int(room_id),
+                        active=True,
+                    )
+                    .first()
+                )
+
+            # -------------------------------------------------
+            # PREFERRED DAY
+            # -------------------------------------------------
+            if preferred_day_id and str(preferred_day_id).isdigit():
+                preferred_day = (
+                    TimetableDay.objects
+                    .filter(
+                        pk=int(preferred_day_id),
+                        active=True,
+                    )
+                    .first()
+                )
+
+            # -------------------------------------------------
+            # LESSON COUNTS
+            # -------------------------------------------------
             try:
                 single = int(
                     request.POST.get("single_lessons", 0) or 0
@@ -3700,40 +4743,133 @@ TeacherAvailability,
             except Exception:
                 double = 0
 
+            if single < 0:
+                single = 0
+
+            if double < 0:
+                double = 0
+
             total = single + double
 
-            if class_id and subject_id and total > 0:
-                LessonRequirement.objects.create(
-                    class_group_id=class_id,
-                    subject_id=subject_id,
-                    teacher_id=teacher_id,
-                    room_id=room_id,
-                    lessons_per_week=total,
-                    double_lessons_per_week=double,
-                    requires_double=double > 0,
-                    duration_periods=int(
-                        request.POST.get("duration_periods", 1) or 1
-                    ),
-                    priority=int(
-                        request.POST.get("priority", 0) or 0
-                    ),
-                    practical=(
-                        request.POST.get("practical") == "1"
-                    ),
-                    preferred_day_id=(
-                        int(request.POST.get("preferred_day"))
-                        if request.POST.get("preferred_day")
-                        else None
-                    ),
-                    notes=request.POST.get("notes") or "",
-                    active=True,
+            # -------------------------------------------------
+            # DURATION
+            # -------------------------------------------------
+            try:
+                duration_periods = int(
+                    request.POST.get("duration_periods", 1) or 1
                 )
+            except Exception:
+                duration_periods = 1
+
+            if duration_periods < 1:
+                duration_periods = 1
+
+            # -------------------------------------------------
+            # PRIORITY
+            # -------------------------------------------------
+            try:
+                priority = int(
+                    request.POST.get("priority", 50) or 50
+                )
+            except Exception:
+                priority = 50
+
+            if priority < 0:
+                priority = 0
+
+            # -------------------------------------------------
+            # VALIDATE REQUIRED OBJECTS
+            # -------------------------------------------------
+            if not class_group:
+                messages.error(
+                    request,
+                    "Please select a valid active class."
+                )
+                return redirect(
+                    "timetable:creation_wizard_step",
+                    9
+                )
+
+            if not subject:
+                messages.error(
+                    request,
+                    "Please select a valid active subject."
+                )
+                return redirect(
+                    "timetable:creation_wizard_step",
+                    9
+                )
+
+            if not teacher:
+                messages.error(
+                    request,
+                    "Please select a valid active timetable teacher."
+                )
+                return redirect(
+                    "timetable:creation_wizard_step",
+                    9
+                )
+
+            if total <= 0:
+                messages.error(
+                    request,
+                    "At least one lesson per week is required."
+                )
+                return redirect(
+                    "timetable:creation_wizard_step",
+                    9
+                )
+
+            # -------------------------------------------------
+            # PREVENT ACTIVE DUPLICATE
+            # -------------------------------------------------
+            duplicate = LessonRequirement.objects.filter(
+                class_group=class_group,
+                subject=subject,
+                teacher=teacher,
+                active=True,
+            ).exists()
+
+            if duplicate:
+                messages.error(
+                    request,
+                    "An active timetable requirement already exists for this class, subject and teacher."
+                )
+                return redirect(
+                    "timetable:creation_wizard_step",
+                    9
+                )
+
+            # -------------------------------------------------
+            # CREATE REQUIREMENT
+            # -------------------------------------------------
+            LessonRequirement.objects.create(
+                class_group=class_group,
+                subject=subject,
+                teacher=teacher,
+                room=room,
+                lessons_per_week=total,
+                double_lessons_per_week=double,
+                requires_double=double > 0,
+                duration_periods=duration_periods,
+                priority=priority,
+                practical=(
+                    request.POST.get("practical") == "1"
+                ),
+                preferred_day=preferred_day,
+                notes=request.POST.get("notes") or "",
+                active=True,
+            )
+
+            messages.success(
+                request,
+                "Timetable lesson requirement added successfully."
+            )
 
         return redirect(
             "timetable:creation_wizard_step",
             9
         )
-
     # STEP 10
     if step == 10 and request.method == "POST":
         request.session["timetable_wizard_confirmed"] = True
@@ -4036,55 +5172,6 @@ TeacherAvailability,
 
     # STEP 8
     if step == 8 and request.method == "POST":
-        return redirect("timetable:creation_wizard_step", 9)
-
-    # STEP 9
-    if step == 9 and request.method == "POST":
-        action = request.POST.get("requirement_action")
-
-        if action == "save":
-            class_id = request.POST.get("class_group")
-            subject_id = request.POST.get("subject")
-            teacher_id = request.POST.get("teacher") or None
-            room_id = request.POST.get("room") or None
-
-            try:
-                single = int(request.POST.get("single_lessons", 0) or 0)
-            except Exception:
-                single = 0
-
-            try:
-                double = int(request.POST.get("double_lessons", 0) or 0)
-            except Exception:
-                double = 0
-
-            total = single + double
-
-            if class_id and subject_id and total > 0:
-                LessonRequirement.objects.create(
-                    class_group_id=class_id,
-                    subject_id=subject_id,
-                    teacher_id=teacher_id,
-                    room_id=room_id,
-                    lessons_per_week=total,
-                    double_lessons_per_week=double,
-                    requires_double=double > 0,
-                    duration_periods=int(
-                        request.POST.get("duration_periods", 1) or 1
-                    ),
-                    priority=int(
-                        request.POST.get("priority", 0) or 0
-                    ),
-                    practical=request.POST.get("practical") == "1",
-                    preferred_day_id=(
-                        int(request.POST.get("preferred_day"))
-                        if request.POST.get("preferred_day")
-                        else None
-                    ),
-                    notes=request.POST.get("notes") or "",
-                    active=True,
-                )
-
         return redirect("timetable:creation_wizard_step", 9)
 
     # STEP 10
@@ -5781,6 +6868,14 @@ def timetable_print_preview(request):
 
 @login_required
 def timetable_print_preview(request):
+    # PRINT PREVIEW PERMISSION
+    denied = _timetable_permission_redirect(
+        request,
+        "view_timetablelesson",
+    )
+    if denied:
+        return denied
+
     # =========================================================
     # PRINT PREVIEW
     # Uses the same master grid structure as Workspace.
@@ -6173,3 +7268,42 @@ def timetable_print_preview(request):
         "timetable/print_preview.html",
         context,
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

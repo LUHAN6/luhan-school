@@ -1,5 +1,6 @@
-from django.contrib.auth.decorators import login_required
+﻿from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
@@ -23,7 +24,7 @@ def is_admin_user(user):
 def is_teaching_staff(user):
     """
     A STAFF user is teaching staff when their linked HR employee
-    has a corresponding scheduling.Teacher record.
+    has a corresponding timetable Teacher record.
 
     We use a subquery instead of traversing the reverse OneToOne
     relation through UserProfile.employee, which is not supported
@@ -33,7 +34,7 @@ def is_teaching_staff(user):
         return False
 
     try:
-        from scheduling.models import Teacher
+        from timetable.models import TimetableTeacher
 
         profile = UserProfile.objects.filter(
             user=user,
@@ -44,7 +45,7 @@ def is_teaching_staff(user):
         if not profile or not profile.employee_id:
             return False
 
-        return Teacher.objects.filter(
+        return TimetableTeacher.objects.filter(
             employee_id=profile.employee_id
         ).exists()
 
@@ -55,13 +56,13 @@ def is_teaching_staff(user):
 def is_support_staff(user):
     """
     A STAFF user is support/non-teaching staff when they have an
-    HR employee record but no corresponding scheduling.Teacher record.
+    HR employee record but no corresponding timetable Teacher record.
     """
     if not user.is_authenticated:
         return False
 
     try:
-        from scheduling.models import Teacher
+        from timetable.models import TimetableTeacher
 
         profile = UserProfile.objects.filter(
             user=user,
@@ -72,7 +73,7 @@ def is_support_staff(user):
         if not profile or not profile.employee_id:
             return False
 
-        return not Teacher.objects.filter(
+        return not TimetableTeacher.objects.filter(
             employee_id=profile.employee_id
         ).exists()
 
@@ -84,9 +85,10 @@ def can_access_staff_messaging(user):
     return (
         is_admin_user(user)
         or user_has_role_permission(
-            user,
-            "view_message",
-        )
+        user,
+        "view_message",
+        "messaging",
+    )
     )
 
 
@@ -96,9 +98,10 @@ def can_compose_messages(user):
         or (
             is_teaching_staff(user)
             and user_has_role_permission(
-                user,
-                "add_message",
-            )
+            user,
+            "add_message",
+            "messaging",
+        )
         )
     )
 
@@ -664,7 +667,7 @@ def message_compose(request):
 
                 recipients = User.objects.filter(
                     is_active=True,
-                    profile__employee__scheduling_teacher__isnull=False,
+                    profile__employee__timetable_teacher__isnull=False,
                 ).exclude(
                     id=request.user.id
                 )
@@ -684,7 +687,43 @@ def message_compose(request):
                     is_active=True,
                     profile__role="STAFF",
                     profile__employee__isnull=False,
-                    profile__employee__scheduling_teacher__isnull=True,
+                    profile__employee__timetable_teacher__isnull=True,
+                ).exclude(
+                    id=request.user.id
+                )
+
+            # AUDIENCE_REPAIR_20261018: administrator-only staff and school-wide groups
+            elif group_type == "staff":
+
+                if not is_admin_user(request.user):
+                    messages.warning(
+                        request,
+                        "Only Admin can message all staff."
+                    )
+                    return redirect("messaging:compose")
+
+                recipients = User.objects.filter(
+                    is_active=True,
+                    profile__employee__isnull=False,
+                ).exclude(
+                    id=request.user.id
+                )
+
+            elif group_type == "everyone":
+
+                if not is_admin_user(request.user):
+                    messages.warning(
+                        request,
+                        "Only Admin can send a message to everyone."
+                    )
+                    return redirect("messaging:compose")
+
+                recipients = User.objects.filter(
+                    is_active=True,
+                ).filter(
+                    Q(parent__isnull=False)
+                    | Q(profile__student__isnull=False)
+                    | Q(profile__employee__isnull=False)
                 ).exclude(
                     id=request.user.id
                 )
@@ -1214,3 +1253,5 @@ def reject_message(request, message_id):
     return redirect(
         "messaging:pending_approvals"
     )
+
+

@@ -185,6 +185,12 @@ class Driver(models.Model):
 
 class Route(models.Model):
 
+    google_maps_url = models.URLField(blank=True)
+    map_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    map_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    distance_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    estimated_minutes = models.PositiveIntegerField(null=True, blank=True)
+
     STATUS_CHOICES = [
         ("ACTIVE", "Active"),
         ("INACTIVE", "Inactive"),
@@ -240,6 +246,10 @@ class Route(models.Model):
 # =========================================================
 
 class RouteStop(models.Model):
+
+    google_maps_url = models.URLField(blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
 
     route = models.ForeignKey(
         Route,
@@ -514,6 +524,72 @@ class TransportTrip(models.Model):
 # =========================================================
 # VEHICLE MAINTENANCE
 # =========================================================
+class TransportFeeStructure(models.Model):
+    academic_year = models.ForeignKey("fees.AcademicYear", on_delete=models.PROTECT, related_name="transport_fee_structures")
+    term = models.ForeignKey("fees.Term", on_delete=models.PROTECT, related_name="transport_fee_structures")
+    class_name = models.CharField(max_length=30, blank=True, default="")
+    route = models.ForeignKey(Route, on_delete=models.PROTECT, related_name="transport_fee_structures")
+    from_stop = models.ForeignKey(RouteStop, on_delete=models.PROTECT, related_name="transport_fee_from_structures", null=True, blank=True)
+    to_stop = models.ForeignKey(RouteStop, on_delete=models.PROTECT, related_name="transport_fee_to_structures", null=True, blank=True)
+    stop = models.ForeignKey(RouteStop, on_delete=models.PROTECT, related_name="transport_fee_structures", null=True, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    billing_label = models.CharField(max_length=100, default="Transport Fee")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-academic_year__year", "term__order", "route__name", "stop__stop_order"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["academic_year", "term", "route", "stop"],
+                name="unique_transport_fee_structure",
+            )
+        ]
+
+    def __str__(self):
+        stop = f" / {self.stop.name}" if self.stop_id else ""
+        return f"{self.route.name}{stop} - {self.amount}"
+
+
+class TransportFeeCharge(models.Model):
+    STATUS_CHOICES = [
+        ("UNPAID", "Unpaid"),
+        ("PARTIAL", "Partially Paid"),
+        ("PAID", "Paid"),
+        ("CANCELLED", "Cancelled"),
+    ]
+    student_assignment = models.ForeignKey(StudentTransportAssignment, on_delete=models.PROTECT, related_name="transport_fee_charges")
+    fee_structure = models.ForeignKey(TransportFeeStructure, on_delete=models.PROTECT, related_name="charges")
+    fee_record = models.ForeignKey("fees.FeeRecord", on_delete=models.PROTECT, related_name="transport_fee_charges")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="UNPAID")
+    generated_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-generated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student_assignment", "fee_structure"],
+                name="unique_transport_fee_charge",
+            )
+        ]
+
+    @property
+    def paid_amount(self):
+        from django.db.models import Sum
+        return self.fee_record.payments.aggregate(total=Sum("amount"))["total"] or 0
+
+    @property
+    def outstanding_amount(self):
+        return max(0, self.amount - self.paid_amount)
+
+    def refresh_status(self):
+        paid = self.paid_amount
+        self.status = "PAID" if paid >= self.amount and self.amount > 0 else ("PARTIAL" if paid > 0 else "UNPAID")
+        self.save(update_fields=["status", "updated_at"])
+
 
 class VehicleMaintenance(models.Model):
 

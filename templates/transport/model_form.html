@@ -3,163 +3,501 @@
 {% block content %}
 
 <style>
+/* Scoped styles: transport model form only */
 .transport-form-page {
-    max-width: 900px;
-    margin: 30px auto;
-    padding: 25px;
+    --tf-ink: #172033;
+    --tf-muted: #64748b;
+    --tf-border: #e2e8f0;
+    --tf-primary: #1769aa;
+    --tf-primary-dark: #12568d;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 26px 22px 40px;
+    color: var(--tf-ink);
+    font-family: inherit;
+    box-sizing: border-box;
 }
 
-.transport-form-card {
-    background: white;
-    padding: 30px;
-    border-radius: 14px;
-    box-shadow: 0 3px 15px rgba(0,0,0,.08);
+.transport-form-page *,
+.transport-form-page *::before,
+.transport-form-page *::after {
+    box-sizing: border-box;
 }
 
-.transport-form-card h1 {
-    margin-top: 0;
+.transport-form-page .tf-breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 17px;
+    color: var(--tf-muted);
+    font-size: 12px;
 }
 
-.transport-form-grid {
+.transport-form-page .tf-breadcrumbs a {
+    color: var(--tf-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.transport-form-page .tf-breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+.transport-form-page .tf-breadcrumb-separator {
+    color: #94a3b8;
+}
+
+.transport-form-page .tf-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.transport-form-page .tf-heading-copy {
+    min-width: 0;
+}
+
+.transport-form-page .tf-eyebrow {
+    margin: 0 0 7px;
+    color: var(--tf-primary);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.transport-form-page .tf-title {
+    margin: 0;
+    color: var(--tf-ink);
+    font-size: clamp(24px, 3vw, 31px);
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+}
+
+.transport-form-page .tf-subtitle {
+    max-width: 650px;
+    margin: 9px 0 0;
+    color: var(--tf-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.transport-form-page .tf-heading-mark {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: #eff6ff;
+    color: var(--tf-primary);
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.transport-form-page .tf-card {
+    overflow: hidden;
+    border: 1px solid var(--tf-border);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.045);
+}
+
+.transport-form-page .tf-card-header {
+    padding: 23px 27px;
+    border-bottom: 1px solid #edf1f6;
+    background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+}
+
+.transport-form-page .tf-card-header h2 {
+    margin: 0;
+    color: var(--tf-ink);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.transport-form-page .tf-card-header p {
+    margin: 6px 0 0;
+    color: var(--tf-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.transport-form-page .tf-form-body {
+    padding: 28px;
+}
+
+.transport-form-page .tf-section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 21px;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.transport-form-page .tf-section-label::before {
+    width: 4px;
+    height: 17px;
+    border-radius: 5px;
+    background: var(--tf-primary);
+    content: "";
+}
+
+.transport-form-page .tf-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    gap: 23px 25px;
 }
 
-.transport-field {
+.transport-form-page .tf-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    min-width: 0;
+    gap: 8px;
 }
 
-.transport-field-full {
+.transport-form-page .tf-field-full {
     grid-column: 1 / -1;
 }
 
-.transport-input {
+.transport-form-page .tf-label {
+    display: block;
+    margin: 0;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.5;
+}
+
+.transport-form-page .tf-required {
+    margin-left: 3px;
+    color: #dc2626;
+}
+
+.transport-form-page .tf-field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.transport-form-page .tf-field select,
+.transport-form-page .tf-field textarea {
+    display: block;
     width: 100%;
-    box-sizing: border-box;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    max-width: 100%;
+    min-height: 45px;
+    margin: 0;
+    padding: 11px 13px;
+    border: 1px solid #d8e0ea;
+    border-radius: 9px;
+    outline: none;
+    background-color: #fff;
+    color: #172033;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
 
-.transport-textarea {
-    min-height: 120px;
+.transport-form-page .tf-field textarea {
+    min-height: 125px;
+    resize: vertical;
 }
 
-.transport-checkbox {
+.transport-form-page .tf-field input::placeholder,
+.transport-form-page .tf-field textarea::placeholder {
+    color: #94a3b8;
+}
+
+.transport-form-page .tf-field input:focus,
+.transport-form-page .tf-field select:focus,
+.transport-form-page .tf-field textarea:focus {
+    border-color: var(--tf-primary);
+    box-shadow: 0 0 0 4px rgba(23, 105, 170, 0.10);
+}
+
+.transport-form-page .tf-field input[type="checkbox"],
+.transport-form-page .tf-field input[type="radio"] {
     width: auto;
+    min-height: auto;
+    accent-color: var(--tf-primary);
 }
 
-.transport-errors {
-    color: #a00;
-    margin-bottom: 15px;
+.transport-form-page .tf-help {
+    margin: -1px 0 0;
+    color: var(--tf-muted);
+    font-size: 11px;
+    line-height: 1.6;
 }
 
-.transport-buttons {
-    margin-top: 25px;
-    display: flex;
-    gap: 10px;
-}
-
-.transport-button {
-    padding: 10px 16px;
+.transport-form-page .tf-field-error {
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid #fecaca;
     border-radius: 8px;
-    border: 0;
+    background: #fff7f7;
+    color: #b91c1c;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.transport-form-page .tf-error-summary {
+    margin: 0 0 23px;
+    padding: 14px 16px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fff7f7;
+    color: #991b1b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.transport-form-page .tf-error-summary strong {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.transport-form-page .tf-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+    padding-top: 22px;
+    border-top: 1px solid #edf1f6;
+}
+
+.transport-form-page .tf-actions-note {
+    margin: 0;
+    color: var(--tf-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.transport-form-page .tf-action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.transport-form-page .tf-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 43px;
+    padding: 11px 19px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.4;
     text-decoration: none;
     cursor: pointer;
-    background: #173f5f;
-    color: white;
+    transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
 
-.transport-cancel {
-    background: #777;
+.transport-form-page .tf-button:hover {
+    transform: translateY(-1px);
 }
 
-@media(max-width: 700px) {
-    .transport-form-grid {
-        grid-template-columns: 1fr;
+.transport-form-page .tf-button-primary {
+    border-color: var(--tf-primary);
+    background: var(--tf-primary);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(23, 105, 170, 0.15);
+}
+
+.transport-form-page .tf-button-primary:hover {
+    border-color: var(--tf-primary-dark);
+    background: var(--tf-primary-dark);
+}
+
+.transport-form-page .tf-button-secondary {
+    border-color: #dbe2ea;
+    background: #fff;
+    color: #475569;
+}
+
+.transport-form-page .tf-button-secondary:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.transport-form-page .tf-button:focus-visible {
+    outline: 3px solid rgba(23, 105, 170, 0.3);
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    .transport-form-page {
+        padding: 17px 12px 28px;
     }
 
-    .transport-field-full {
+    .transport-form-page .tf-heading {
+        gap: 12px;
+        margin-bottom: 19px;
+    }
+
+    .transport-form-page .tf-title {
+        font-size: 24px;
+    }
+
+    .transport-form-page .tf-heading-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        font-size: 20px;
+    }
+
+    .transport-form-page .tf-card-header {
+        padding: 19px;
+    }
+
+    .transport-form-page .tf-form-body {
+        padding: 20px 17px;
+    }
+
+    .transport-form-page .tf-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 19px;
+    }
+
+    .transport-form-page .tf-field-full {
         grid-column: auto;
+    }
+
+    .transport-form-page .tf-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .transport-form-page .tf-action-buttons {
+        width: 100%;
+    }
+
+    .transport-form-page .tf-button {
+        flex: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .transport-form-page *,
+    .transport-form-page *::before,
+    .transport-form-page *::after {
+        transition: none !important;
+        scroll-behavior: auto !important;
     }
 }
 </style>
 
 <div class="transport-form-page">
 
-    <div class="transport-form-card">
+    <nav class="tf-breadcrumbs" aria-label="Breadcrumb">
+        <a href="{% url config.list_url %}">Transport</a>
+        <span class="tf-breadcrumb-separator" aria-hidden="true">/</span>
+        <a href="{% url config.list_url %}">{{ title }}</a>
+        <span class="tf-breadcrumb-separator" aria-hidden="true">/</span>
+        <span aria-current="page">Form</span>
+    </nav>
 
-        <h1>{{ title }}</h1>
+    <header class="tf-heading">
+        <div class="tf-heading-copy">
+            <p class="tf-eyebrow">Transport management</p>
+            <h1 class="tf-title">{{ title }}</h1>
+{% if title == "Add Route" or title == "Edit Route" %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary"
+     href="{% url 'transport:route_csv_template' %}">Download CSV Template</a>
+  <a class="btn btn-outline-primary"
+     href="{% url 'transport:route_csv_export' %}">Export Routes</a>
+  <a class="btn btn-outline-success"
+     href="{% url 'transport:route_csv_import' %}">Import CSV</a>
+</div>
+{% endif %}
 
-        {% if form.non_field_errors %}
-            <div class="transport-errors">
-                {{ form.non_field_errors }}
-            </div>
-        {% endif %}
+            <p class="tf-subtitle">
+                Enter the details below carefully. Fields marked with
+                <span class="tf-required">*</span> are required.
+            </p>
+        </div>
+        <div class="tf-heading-mark" aria-hidden="true">&#9998;</div>
+    </header>
 
-        <form method="post">
+    <section class="tf-card" aria-labelledby="tf-form-heading">
+        <div class="tf-card-header">
+            <h2 id="tf-form-heading">Record information</h2>
+            <p>Complete the form and review your entries before saving.</p>
+        </div>
 
-            {% csrf_token %}
+        <div class="tf-form-body">
 
-            <div class="transport-form-grid">
+            {% if form.non_field_errors %}
+                <div class="tf-error-summary" role="alert">
+                    <strong>Please review the following:</strong>
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
 
-                {% for field in form %}
+            <form method="post">
+                {% csrf_token %}
 
-                    <div class="
-                        transport-field
-                        {% if field.field.widget.input_type == 'textarea' %}
-                            transport-field-full
-                        {% endif %}
-                    ">
+                <h3 class="tf-section-label">Details</h3>
 
-                        <label for="{{ field.id_for_label }}">
-                            {{ field.label }}
-                        </label>
+                <div class="tf-form-grid">
+                    {% for field in form %}
+                        <div class="tf-field{% if field.name == 'description' or field.field.widget.input_type == 'textarea' %} tf-field-full{% endif %}">
 
-                        {{ field }}
+                            <label class="tf-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}{% if field.field.required %}<span class="tf-required" aria-label="required">*</span>{% endif %}
+                            </label>
 
-                        {% if field.help_text %}
-                            <small>
-                                {{ field.help_text }}
-                            </small>
-                        {% endif %}
+                            {{ field }}
 
-                        {% if field.errors %}
-                            <div class="transport-errors">
-                                {{ field.errors }}
-                            </div>
-                        {% endif %}
+                            {% if field.help_text %}
+                                <p class="tf-help">{{ field.help_text|safe }}</p>
+                            {% endif %}
 
+                            {% if field.errors %}
+                                <div class="tf-field-error" role="alert">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="tf-actions">
+                    <p class="tf-actions-note">
+                        Please check all details before submitting.
+                    </p>
+
+                    <div class="tf-action-buttons">
+                        <a href="{% url config.list_url %}" class="tf-button tf-button-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="tf-button tf-button-primary">
+                            <span aria-hidden="true">&#10003;</span>
+                            Save {{ singular }}
+                        </button>
                     </div>
+                </div>
 
-                {% endfor %}
-
-            </div>
-
-            <div class="transport-buttons">
-
-                <button
-                    type="submit"
-                    class="transport-button"
-                >
-                    Save {{ singular }}
-                </button>
-
-                <a
-                    href="{% url config.list_url %}"
-                    class="transport-button transport-cancel"
-                >
-                    Cancel
-                </a>
-
-            </div>
-
-        </form>
-
-    </div>
+            </form>
+        </div>
+    </section>
 
 </div>
 

@@ -1,0 +1,14 @@
+{% extends "transport_pro/base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="pagehead"><div><h1>Transport Reports</h1><div class="muted">Year-to-date summary · figures from this transport app.</div></div></div>
+<div class="grid">
+<div class="card"><div class="metric">{{ trips_year }}</div><div class="metric-label">Trips this year</div></div>
+<div class="card"><div class="metric">{{ completed_year }}</div><div class="metric-label">Completed trips</div></div>
+<div class="card"><div class="metric">{{ incident_count }}</div><div class="metric-label">Incidents this year</div></div>
+<div class="card"><div class="metric">KSh {{ maintenance_cost|floatformat:2 }}</div><div class="metric-label">Maintenance expenditure this year</div></div>
+<div class="card"><div class="metric">KSh {{ charges_due|floatformat:2 }}</div><div class="metric-label">Outstanding charge amounts</div></div>
+</div>
+<div class="card"><h2>Active learners by route</h2><div class="tablewrap"><table><thead><tr><th>Route code</th><th>Route</th><th>Active learners</th></tr></thead><tbody>{% for row in by_route %}<tr><td>{{ row.route__code }}</td><td>{{ row.route__name }}</td><td>{{ row.learners }}</td></tr>{% empty %}<tr><td colspan="3">No active assignments.</td></tr>{% endfor %}</tbody></table></div></div>
+<p class="muted">Before management decisions, reconcile these figures with the ERP's canonical fee ledger and student database.</p>
+{% endblock %}

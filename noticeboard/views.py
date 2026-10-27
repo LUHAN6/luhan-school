@@ -30,7 +30,7 @@ def is_staff_user(user):
 def is_support_staff(user):
     """
     Support Staff are ERP STAFF users who do not have
-    an active scheduling Teacher record.
+    an active timetable Teacher record.
     """
     return (
         is_staff_user(user)
@@ -41,7 +41,7 @@ def is_support_staff(user):
 def is_teaching_staff(user):
     """
     Teaching Staff are ERP STAFF users who have an
-    active scheduling Teacher record.
+    active timetable Teacher record.
     """
     return (
         is_staff_user(user)
@@ -84,12 +84,10 @@ def noticeboard_dashboard(request):
     # ACCESS CONTROL
     # ---------------------------------------------------------
 
-    staff_access = (
-        is_staff_user(request.user)
-        or user_has_role_permission(
-            request.user,
-            "view_notice",
-        )
+    staff_access = user_has_role_permission(
+        request.user,
+        "view_notice",
+        "noticeboard",
     )
 
     if not (
@@ -167,3 +165,5 @@ def noticeboard_dashboard(request):
         "noticeboard/noticeboard_dashboard.html",
         context,
     )
+
+

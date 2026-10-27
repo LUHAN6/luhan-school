@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -654,6 +654,7 @@ body {
             Requirements
         </a>
 
+        {% if is_timetable_admin %}
         <a href="{% url 'timetable:generation_control' %}">
             Generate / Regenerate
         </a>
@@ -665,6 +666,7 @@ body {
         <a href="{% url 'timetable:control_centre' %}">
             Control Centre
         </a>
+        {% endif %}
 
     </div>
 </div>
@@ -684,6 +686,7 @@ body {
 
 <div class="toolbar">
 
+    {% if is_timetable_admin %}
     <a class="btn btn-blue"
        href="{% url 'timetable:setup' %}">
         Academic Setup
@@ -705,6 +708,7 @@ body {
             Generate Timetable
         </button>
     </form>
+    {% endif %}
 
     {% if lessons %}
         <span class="count">
@@ -910,3 +914,4 @@ body {
 
 </body>
 </html>
+

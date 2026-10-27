@@ -1,0 +1,54 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width:1200px;margin:24px auto;padding:0 14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+            <h2 style="margin:0;font-size:20px;">PAYE Tax Bands</h2>
+            <small style="color:#64748b;">Configure progressive PAYE rates and effective dates.</small>
+        </div>
+        <a href="{% url 'hr_payroll:paye_tax_band_add' %}"
+           style="padding:9px 12px;background:#0b63ce;color:white;border-radius:7px;text-decoration:none;font-size:11px;font-weight:700;">
+            + Add Band
+        </a>
+    </div>
+
+    <div style="overflow-x:auto;background:white;border:1px solid #e2e8f0;border-radius:10px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+                <tr style="background:#f8fafc;">
+                    <th style="padding:10px;text-align:left;">Band</th>
+                    <th style="padding:10px;text-align:right;">Lower</th>
+                    <th style="padding:10px;text-align:right;">Upper</th>
+                    <th style="padding:10px;text-align:right;">Rate</th>
+                    <th style="padding:10px;text-align:center;">Status</th>
+                    <th style="padding:10px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in bands %}
+                <tr style="border-top:1px solid #e2e8f0;">
+                    <td style="padding:10px;">{{ item.name }}</td>
+                    <td style="padding:10px;text-align:right;">{{ item.lower_limit|floatformat:2 }}</td>
+                    <td style="padding:10px;text-align:right;">{{ item.upper_limit|default:"8" }}</td>
+                    <td style="padding:10px;text-align:right;font-weight:800;">{{ item.rate }}%</td>
+                    <td style="padding:10px;text-align:center;">
+                        {% if item.is_active %}
+                            <span style="color:#166534;font-weight:800;">ON</span>
+                        {% else %}
+                            <span style="color:#991b1b;font-weight:800;">OFF</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px;">
+                        <a href="{% url 'hr_payroll:paye_tax_band_edit' item.pk %}">Edit / ON-OFF</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" style="padding:20px;text-align:center;">No PAYE bands configured.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

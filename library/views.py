@@ -78,23 +78,30 @@ def library_access_required(view_func):
             return redirect(
                 "login"
             )
+        # ----------------------------------------------------
+        # ERP CUSTOM ROLE PERMISSION
+        # ----------------------------------------------------
+        # Module access is controlled by:
+        # Admin Portal -> Custom Role -> Django Permission.
+        #
+        # Superuser and ERP ADMIN are allowed.
+        # STAFF must have the exact Library module permission.
+        # ----------------------------------------------------
 
-        # Superusers and staff always have access.
-        if request.user.is_superuser or request.user.is_staff:
+        if request.user.is_superuser:
             return view_func(
                 request,
                 *args,
                 **kwargs
             )
 
-        # Allow users whose account has a Library role/permission.
-        allowed = False
-
         profile = getattr(
             request.user,
             "profile",
             None
         )
+
+        allowed = False
 
         if profile:
 
@@ -106,19 +113,26 @@ def library_access_required(view_func):
                 )
             ).upper()
 
-            if "LIBRARY" in role:
+            if role == "ADMIN":
                 allowed = True
 
-        # Also allow users with a library-related permission.
-        try:
+            else:
 
-            if request.user.has_perm(
-                "library.view_book"
-            ):
-                allowed = True
+                custom_role = getattr(
+                    profile,
+                    "custom_role",
+                    None
+                )
 
-        except Exception:
-            pass
+                if (
+                    custom_role
+                    and custom_role.is_active
+                    and custom_role.permissions.filter(
+                        codename="view_librarymember",
+                        content_type__app_label="library",
+                    ).exists()
+                ):
+                    allowed = True
 
         # Never redirect Library users to the ERP root.
         # Return a clear HTTP response instead.
@@ -1828,3 +1842,6 @@ def book_all_list(request):
             "school_branding": school_branding,
         },
     )
+
+
+

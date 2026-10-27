@@ -1,0 +1,257 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.loan-detail {
+    max-width:950px;
+    margin:0 auto;
+    padding:18px;
+}
+
+.loan-detail-head {
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:white;
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:14px;
+}
+
+.loan-detail-head h1 {
+    margin:0;
+    font-size:20px;
+    font-weight:800;
+}
+
+.loan-detail-head p {
+    margin:4px 0 0;
+    font-size:11px;
+    opacity:.75;
+}
+
+.loan-card {
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    margin-bottom:14px;
+    overflow:hidden;
+}
+
+.loan-card-head {
+    padding:11px 14px;
+    border-bottom:1px solid #e2e8f0;
+    font-size:12px;
+    font-weight:800;
+}
+
+.loan-card-body {
+    padding:14px;
+}
+
+.loan-item {
+    padding:10px 0;
+    border-bottom:1px solid #f1f5f9;
+}
+
+.loan-item:last-child {
+    border-bottom:0;
+}
+
+.loan-label {
+    font-size:9px;
+    text-transform:uppercase;
+    color:#64748b;
+    font-weight:800;
+}
+
+.loan-value {
+    font-size:13px;
+    font-weight:700;
+    color:#0f172a;
+    margin-top:2px;
+}
+
+.loan-status {
+    display:inline-flex;
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:800;
+    background:#f1f5f9;
+}
+
+.loan-actions {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.loan-actions a {
+    text-decoration:none;
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:11px;
+    font-weight:800;
+}
+</style>
+
+<div class="loan-detail">
+
+    <div class="loan-detail-head">
+
+        <h1>
+            <i class="bi bi-file-earmark-text me-1"></i>
+            Loan Application #{{ application.pk }}
+        </h1>
+
+        <p>
+            Submitted {{ application.created_at|date:"d M Y H:i" }}
+        </p>
+
+    </div>
+
+    <div class="loan-card">
+
+        <div class="loan-card-head">
+            Application Status
+        </div>
+
+        <div class="loan-card-body">
+
+            <span class="loan-status">
+                {{ application.get_status_display }}
+            </span>
+
+            {% if application.status == "REJECTED" %}
+                <div class="alert alert-danger mt-3 mb-0 small">
+                    Your application was not approved. Please contact the administration
+                    if you need clarification.
+                </div>
+            {% elif application.status == "APPROVED" %}
+                <div class="alert alert-primary mt-3 mb-0 small">
+                    Your application has been approved and is awaiting disbursement.
+                </div>
+            {% elif application.status == "DISBURSED" %}
+                <div class="alert alert-success mt-3 mb-0 small">
+                    Your loan has been disbursed and is now connected to your loan record.
+                </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="loan-card">
+
+        <div class="loan-card-head">
+            Application Information
+        </div>
+
+        <div class="loan-card-body">
+
+            <div class="row">
+
+                {% for field in application._meta.fields %}
+
+                    <div class="col-md-6">
+
+                        <div class="loan-item">
+
+                            <div class="loan-label">
+                                {{ field.verbose_name }}
+                            </div>
+
+                            <div class="loan-value">
+
+                                {% if field.name == "status" %}
+                                    {{ application.get_status_display }}
+                                {% else %}
+                                    {{ application|default_if_none:"" }}
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% if staff_loan %}
+
+    <div class="loan-card">
+
+        <div class="loan-card-head">
+            Linked Loan
+        </div>
+
+        <div class="loan-card-body">
+
+            <div class="row">
+
+                <div class="col-md-4">
+                    <div class="loan-item">
+                        <div class="loan-label">Principal</div>
+                        <div class="loan-value">
+                            {{ staff_loan.principal_amount|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="loan-item">
+                        <div class="loan-label">Monthly Deduction</div>
+                        <div class="loan-value">
+                            {{ staff_loan.monthly_installment|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="loan-item">
+                        <div class="loan-label">Balance</div>
+                        <div class="loan-value">
+                            {{ staff_loan.balance|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="loan-actions">
+
+        <a href="{% url 'hr_payroll:staff_loan_list' %}"
+           style="background:#f1f5f9;color:#334155;">
+            <i class="bi bi-arrow-left"></i>
+            Back to My Loans
+        </a>
+
+        {% if application.status == "DRAFT" %}
+
+            <a href="{% url 'hr_payroll:staff_loan_apply' %}"
+               style="background:#1d4ed8;color:white;">
+                Continue Application
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

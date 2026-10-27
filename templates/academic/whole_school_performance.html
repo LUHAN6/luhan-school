@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Whole-School Performance | {{ branding.school_name|default:"Luhan School" }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+body{background:#f4f7fb;color:#172b4d;font-family:Arial,Helvetica,sans-serif}
+.page-header{background:#123b7a;color:white;padding:25px 0}
+.school-logo{width:76px;height:76px;object-fit:contain;background:#fff;border-radius:10px;padding:5px;flex-shrink:0}
+.panel{background:white;border:1px solid #e1e7ef;border-radius:14px;padding:20px;height:100%}
+.metric{font-size:1.7rem;font-weight:700}
+.muted{color:#65748b}
+.table-responsive{border-radius:10px}
+th{white-space:nowrap}
+@media(max-width:575px){.panel{padding:15px}.metric{font-size:1.4rem}.school-logo{width:54px;height:54px}}
+@page{size:A4 landscape;margin:10mm}
+@media print{
+  body{background:white!important;color:#111;font-size:9pt}
+  .no-print,.page-header .btn,form{display:none!important}
+  .page-header{background:white!important;color:#111!important;padding:0 0 10px;border-bottom:2px solid #123b7a}
+  .school-logo{width:58px;height:58px;border:1px solid #ddd}
+  main.container{max-width:none!important;width:100%!important;padding:10px 0!important}
+  .panel{height:auto!important;box-shadow:none!important;border:1px solid #bbb;border-radius:0;padding:12px;margin-bottom:12px;break-inside:avoid}
+  .table-responsive{overflow:visible!important}
+  table{width:100%!important;font-size:8pt}
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  a{color:#111!important;text-decoration:none!important}
+}
+</style>
+</head>
+<body>
+<header class="page-header">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            {% if branding and branding.logo %}
+            <img src="{{ branding.logo.url }}" alt="{{ branding.school_name|default:'School' }} logo" class="school-logo">
+            {% endif %}
+            <div>
+                <h1 class="h3 mb-1">{{ branding.school_name|default:"Luhan School" }}</h1>
+                {% if branding and branding.motto %}<p class="mb-1">{{ branding.motto }}</p>{% endif %}
+                <div class="small text-uppercase opacity-75">Academic Department ? Administrator</div>
+                <h2 class="h5 mb-1">Whole-School Performance Analysis</h2>
+                <p class="mb-0">School-wide analysis of recorded assessment results.</p>
+            </div>
+        </div>
+        <a class="btn btn-light no-print" href="{% url 'academic:performance_centre' %}">Performance Centre</a>
+    </div>
+</header>
+
+<main class="container py-4">
+    {% if filter_error %}<div class="alert alert-warning">{{ filter_error }}</div>{% endif %}
+
+    <section class="panel mb-4 no-print">
+        <h2 class="h5 mb-3">Analysis Filters</h2>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="year">Academic year</label>
+                <select class="form-select" name="year" id="year">
+                    {% for year in academic_years %}
+                    <option value="{{ year.pk }}" {% if selected_year.pk == year.pk %}selected{% endif %}>{{ year.year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="term">Term for overview and assessment comparison</label>
+                <select class="form-select" name="term" id="term">
+                    <option value="">All terms</option>
+                    {% for term in terms %}
+                    <option value="{{ term.pk }}" {% if selected_term.pk == term.pk %}selected{% endif %}>{{ term.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="assessment_type">Assessment type</label>
+                <select class="form-select" name="assessment_type" id="assessment_type">
+                    <option value="">All assessment types</option>
+                    {% for item in assessment_types %}
+                    <option value="{{ item.pk }}" {% if selected_assessment_type.pk == item.pk %}selected{% endif %}>{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" type="submit">Apply Filters</button>
+                <a class="btn btn-outline-secondary" href="{% url 'academic:whole_school_performance_analysis' %}">Reset</a>
+            </div>
+        </form>
+        {% if selected_year %}
+        <p class="muted small mt-3 mb-0">
+            Year: {{ selected_year.year }}
+            {% if selected_term %} · Overview term: {{ selected_term.name }}{% else %} · Overview: all terms{% endif %}
+            {% if selected_assessment_type %} · Type: {{ selected_assessment_type.name }}{% endif %}
+        </p>
+        {% endif %}
+    </section>
+
+    {% if not selected_year %}
+    <div class="alert alert-info">No academic years are available yet.</div>
+    {% else %}
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3"><section class="panel"><div class="muted small">School mean score</div><div class="metric">{% if summary.average != None %}{{ summary.average|floatformat:1 }}%{% else %}—{% endif %}</div><div class="muted small">Out of 100</div></section></div>
+        <div class="col-12 col-sm-6 col-xl-3"><section class="panel"><div class="muted small">Marks recorded</div><div class="metric">{{ summary.marks_count|default:0 }}</div><div class="muted small">Assessment records in selection</div></section></div>
+        <div class="col-12 col-sm-6 col-xl-3"><section class="panel"><div class="muted small">Learners assessed</div><div class="metric">{{ summary.learners_count|default:0 }}</div><div class="muted small">Unique learners with recorded marks</div></section></div>
+        <div class="col-12 col-sm-6 col-xl-3"><section class="panel"><div class="muted small">Highest / lowest</div><div class="metric">{% if summary.highest != None %}{{ summary.highest|floatformat:1 }} / {{ summary.lowest|floatformat:1 }}{% else %}—{% endif %}</div><div class="muted small">Recorded scores</div></section></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-6">
+            <section class="panel">
+                <h2 class="h5">Assessment-Type Comparison</h2>
+                <p class="muted small">Uses the selected term, or all terms if “All terms” is selected. This comparison includes all active assessment types.</p>
+                <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+                    <thead><tr><th>Assessment</th><th>Mean</th><th>Learners</th><th>Marks</th></tr></thead>
+                    <tbody>
+                    {% for row in assessment_comparison %}
+                    <tr><td>{{ row.assessment_type__name }}</td><td>{{ row.average|floatformat:1 }}%</td><td>{{ row.learners_count }}</td><td>{{ row.marks_count }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="text-muted">No recorded assessment results for this selection.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
+        <div class="col-12 col-xl-6">
+            <section class="panel">
+                <h2 class="h5">Term Comparison</h2>
+                <p class="muted small">Compares terms across the selected academic year. The assessment-type filter applies; the selected term does not restrict this comparison.</p>
+                <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+                    <thead><tr><th>Term</th><th>Mean</th><th>Learners</th><th>Marks</th></tr></thead>
+                    <tbody>
+                    {% for row in term_comparison %}
+                    <tr><td>{{ row.term__name }}</td><td>{{ row.average|floatformat:1 }}%</td><td>{{ row.learners_count }}</td><td>{{ row.marks_count }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="text-muted">No term results available.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
+        <div class="col-12 col-xl-6">
+            <section class="panel">
+                <h2 class="h5">Subject Rankings</h2>
+                <p class="muted small">Ranked by mean score for the current overview selection.</p>
+                <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+                    <thead><tr><th>Subject</th><th>Mean</th><th>Learners</th><th>Marks</th></tr></thead>
+                    <tbody>
+                    {% for row in subject_rankings %}
+                    <tr><td>{{ row.subject__name }}</td><td>{{ row.average|floatformat:1 }}%</td><td>{{ row.learners_count }}</td><td>{{ row.marks_count }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="text-muted">No subject results available.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
+        <div class="col-12 col-xl-6">
+            <section class="panel">
+                <h2 class="h5">Class Rankings</h2>
+                <p class="muted small">Based on recorded marks; classes with more marks may have different assessment coverage.</p>
+                <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+                    <thead><tr><th>Class</th><th>Mean</th><th>Learners</th><th>Marks</th></tr></thead>
+                    <tbody>
+                    {% for row in class_rankings %}
+                    <tr><td>{{ row.student__class_name|default:"Unassigned" }}</td><td>{{ row.average|floatformat:1 }}%</td><td>{{ row.learners_count }}</td><td>{{ row.marks_count }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="text-muted">No class results available.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+            </section>
+        </div>
+    </div>
+    <p class="muted small">These statistics describe recorded marks, not necessarily every learner enrolled. Learners without recorded marks are not treated as scoring zero. Comparisons should be interpreted in light of assessment coverage and differences in the assessments completed.</p>
+    {% endif %}
+</main>
+
+<div class="container my-3 no-print"><a class="btn btn-outline-primary" href="{% url 'academic:performance_comparison' %}?mode=school">Open user-controlled comparison</a></div>
+</body>
+</html>

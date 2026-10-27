@@ -1,14 +1,18 @@
 ﻿from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
 from django.utils.crypto import get_random_string
+from django.views.decorators.cache import never_cache
 
 from students.models import Student
 from hr_payroll.models import Employee
 from .views import admin_required
 
 
+@never_cache
 @login_required
 def admin_password_reset(request):
     if not admin_required(request):
@@ -122,34 +126,51 @@ def admin_password_reset(request):
             )
 
         if user is not None:
-            generated_password = (
-                get_random_string(
-                    4,
-                    allowed_chars="ABCDEFGHJKLMNPQRSTUVWXYZ"
+            # Generate a password only if it passes configured Django validators.
+            for _ in range(20):
+                candidate = (
+                    get_random_string(
+                        5,
+                        allowed_chars="ABCDEFGHJKLMNPQRSTUVWXYZ"
+                    )
+                    + get_random_string(
+                        5,
+                        allowed_chars="abcdefghijkmnopqrstuvwxyz"
+                    )
+                    + get_random_string(
+                        3,
+                        allowed_chars="23456789"
+                    )
+                    + get_random_string(
+                        3,
+                        allowed_chars="!@#$%"
+                    )
                 )
-                + get_random_string(
-                    4,
-                    allowed_chars="abcdefghijkmnopqrstuvwxyz"
-                )
-                + get_random_string(
-                    2,
-                    allowed_chars="23456789"
-                )
-                + get_random_string(
-                    2,
-                    allowed_chars="!@#$%"
-                )
-            )
 
-            user.set_password(generated_password)
-            user.save(update_fields=["password"])
+                try:
+                    validate_password(candidate, user=user)
+                except ValidationError:
+                    continue
 
-            reset_username = user.username
+                generated_password = candidate
+                break
 
-            messages.success(
-                request,
-                f"{reset_account_type} password reset successfully."
-            )
+            if generated_password is None:
+                messages.error(
+                    request,
+                    "A password meeting the configured security rules "
+                    "could not be generated. No password was changed."
+                )
+            else:
+                user.set_password(generated_password)
+                user.save(update_fields=["password"])
+
+                reset_username = user.username
+
+                messages.success(
+                    request,
+                    f"{reset_account_type} password reset successfully."
+                )
 
     return render(
         request,

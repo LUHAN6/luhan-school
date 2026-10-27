@@ -1,5 +1,7 @@
-﻿from timetable.legacy_compat import TeacherClassAssignment
-from timetable.legacy_compat import TeacherTeachingAssignment
+﻿from timetable.advanced_models import (
+    TimetableTeacherClassAssignment,
+    TimetableTeacherTeachingAssignment,
+)
 from timetable.staff_utils import (
     get_staff_teacher,
     get_staff_subjects_for_class,
@@ -76,6 +78,7 @@ def can_manage_learning_area(
     }
 
     return subject.id in subject_ids
+
 
 
 

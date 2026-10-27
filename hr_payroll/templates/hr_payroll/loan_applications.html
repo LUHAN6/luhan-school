@@ -1,0 +1,289 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.admin-loans {
+    padding:18px;
+}
+
+.admin-head {
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:white;
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+}
+
+.admin-head h1 {
+    margin:0;
+    font-size:20px;
+    font-weight:800;
+}
+
+.admin-head p {
+    margin:4px 0 0;
+    font-size:11px;
+    opacity:.75;
+}
+
+.admin-stat {
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:11px;
+    padding:12px;
+}
+
+.admin-stat-label {
+    font-size:9px;
+    text-transform:uppercase;
+    color:#64748b;
+    font-weight:800;
+}
+
+.admin-stat-value {
+    font-size:20px;
+    font-weight:800;
+    color:#0f172a;
+}
+
+.admin-card {
+    margin-top:14px;
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    overflow:hidden;
+}
+
+.admin-table-wrap {
+    overflow-x:auto;
+}
+
+.admin-table {
+    width:100%;
+    min-width:760px;
+    border-collapse:collapse;
+    font-size:12px;
+}
+
+.admin-table th {
+    background:#f8fafc;
+    padding:9px;
+    color:#64748b;
+    font-size:9px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+.admin-table td {
+    padding:10px 9px;
+    border-top:1px solid #f1f5f9;
+    vertical-align:middle;
+}
+
+.admin-badge {
+    display:inline-flex;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:800;
+}
+
+.pending { background:#fef3c7;color:#92400e; }
+.approved { background:#dbeafe;color:#1e40af; }
+.rejected { background:#fee2e2;color:#991b1b; }
+.disbursed { background:#dcfce7;color:#166534; }
+.other { background:#f1f5f9;color:#475569; }
+
+.admin-action {
+    text-decoration:none;
+    display:inline-flex;
+    padding:6px 9px;
+    border-radius:7px;
+    font-size:10px;
+    font-weight:800;
+    background:#1d4ed8;
+    color:white;
+}
+
+@media(max-width:700px) {
+    .admin-loans {
+        padding:10px;
+    }
+}
+</style>
+
+<div class="admin-loans">
+
+    <div class="admin-head">
+
+        <h1>
+            <i class="bi bi-wallet2 me-1"></i>
+            Loan Applications
+        </h1>
+
+        <p>
+            Review staff applications and move approved applications into the existing payroll loan system.
+        </p>
+
+    </div>
+
+
+    <div class="row g-2">
+
+        <div class="col-6 col-lg-3">
+            <div class="admin-stat">
+                <div class="admin-stat-label">Total</div>
+                <div class="admin-stat-value">
+                    {{ applications|length }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="admin-stat">
+                <div class="admin-stat-label">Submitted</div>
+                <div class="admin-stat-value">
+                    {{ submitted_count|default:0 }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="admin-stat">
+                <div class="admin-stat-label">Approved</div>
+                <div class="admin-stat-value">
+                    {{ approved_count|default:0 }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="admin-stat">
+                <div class="admin-stat-label">Disbursed</div>
+                <div class="admin-stat-value">
+                    {{ disbursed_count|default:0 }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="admin-card">
+
+        <div class="admin-table-wrap">
+
+            {% if applications %}
+
+            <table class="admin-table">
+
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Application</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for application in applications %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+                                {{ application.employee.full_name }}
+                            </strong>
+
+                            <div class="text-muted small">
+                                {{ application.employee.employee_number }}
+                            </div>
+
+                        </td>
+
+                        <td>
+                            #{{ application.pk }}
+
+                            <div class="text-muted small">
+                                {{ application.loan_name|default:"Loan Application" }}
+                            </div>
+                        </td>
+
+                        <td>
+                            {{ application.requested_amount|default:application.amount|default:application.principal_amount|floatformat:2 }}
+                        </td>
+
+                        <td>
+                            {{ application.created_at|date:"d M Y" }}
+                        </td>
+
+                        <td>
+
+                            {% if application.status == "SUBMITTED" or application.status == "UNDER_REVIEW" %}
+                                <span class="admin-badge pending">
+                                    {{ application.get_status_display }}
+                                </span>
+                            {% elif application.status == "APPROVED" %}
+                                <span class="admin-badge approved">
+                                    Approved
+                                </span>
+                            {% elif application.status == "REJECTED" %}
+                                <span class="admin-badge rejected">
+                                    Rejected
+                                </span>
+                            {% elif application.status == "DISBURSED" %}
+                                <span class="admin-badge disbursed">
+                                    Disbursed
+                                </span>
+                            {% else %}
+                                <span class="admin-badge other">
+                                    {{ application.get_status_display }}
+                                </span>
+                            {% endif %}
+
+                        </td>
+
+                        <td class="text-end">
+
+                            <a href="{% url 'hr_payroll:loan_application_detail' application.pk %}"
+                               class="admin-action">
+                                Review
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <div class="text-center py-5 text-muted">
+
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+
+                No loan applications found.
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

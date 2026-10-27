@@ -27,6 +27,8 @@ from .models import (
     AssessmentWindow,
 )
 
+from .performance_analytics import build_performance_analytics
+
 from .mark_permissions import (
     is_admin,
     can_enter_marks,
@@ -2316,9 +2318,25 @@ def academic_results(request):
 
 
 @login_required
+def performance_centre(request):
+    """
+    Navigation centre for learner, class, school performance,
+    and report-card workflows.
+    """
+    return render(
+        request,
+        "academic/performance_centre.html",
+        {
+            "is_admin": is_admin_user(request.user),
+            "branding": SchoolBranding.objects.first(),
+        },
+    )
+
+
+@login_required
 def performance_analysis(request):
 
-    branding = SchoolBranding.objects.first()
+    branding = (SchoolBranding.objects.filter(is_active=True).first() or SchoolBranding.objects.first())
 
     academic_years = AcademicYear.objects.all().order_by(
         "-year"
@@ -2363,6 +2381,7 @@ def performance_analysis(request):
     selected_year = None
     selected_term = None
     selected_assessment_type = None
+    filter_error = ""
 
     year_id = request.GET.get(
         "year"
@@ -2392,27 +2411,69 @@ def performance_analysis(request):
                 ""
             )
 
-    if year_id:
+    # Apply class-specific subject permissions before calculating statistics.
+    if selected_class:
+        subjects = get_staff_subjects_for_class(
+            request.user,
+            selected_class,
+            selected_stream,
+        ).filter(
+            is_active=True
+        ).order_by("name")
 
-        selected_year = get_object_or_404(
-            AcademicYear,
-            id=year_id
-        )
+    if year_id:
+        if str(year_id).strip().isdigit():
+            selected_year = AcademicYear.objects.filter(
+                pk=year_id
+            ).first()
+
+        if selected_year:
+            terms = Term.objects.filter(
+                academic_year=selected_year
+            ).order_by("order", "name")
+        else:
+            terms = Term.objects.none()
+            filter_error = (
+                "The selected academic year is invalid. "
+                "Please choose a valid academic year."
+            )
 
     if term_id:
+        if str(term_id).strip().isdigit():
+            selected_term = Term.objects.filter(
+                pk=term_id
+            ).first()
 
-        selected_term = get_object_or_404(
-            Term,
-            id=term_id
+        if not selected_term and not filter_error:
+            filter_error = (
+                "The selected term is invalid. "
+                "Please choose a valid term."
+            )
+
+    # Reject a term that does not belong to the selected year.
+    if (
+        selected_year
+        and selected_term
+        and selected_term.academic_year_id != selected_year.id
+    ):
+        filter_error = (
+            "The selected term does not belong to the selected academic "
+            "year. Please choose a term listed for that year."
         )
+        selected_term = None
 
     if assessment_type_id:
+        if str(assessment_type_id).strip().isdigit():
+            selected_assessment_type = AssessmentType.objects.filter(
+                pk=assessment_type_id,
+                is_active=True,
+            ).first()
 
-        selected_assessment_type = get_object_or_404(
-            AssessmentType,
-            id=assessment_type_id,
-            is_active=True
-        )
+        if not selected_assessment_type and not filter_error:
+            filter_error = (
+                "The selected assessment type is invalid or inactive. "
+                "Please choose an available assessment type."
+            )
 
     learner_count = 0
     class_average = 0
@@ -2426,6 +2487,7 @@ def performance_analysis(request):
     if (
         selected_year
         and selected_term
+        and selected_term.academic_year_id == selected_year.id
         and selected_assessment_type
         and selected_class
         and can_view_class(
@@ -2460,7 +2522,8 @@ def performance_analysis(request):
             student__in=students,
             academic_year=selected_year,
             term=selected_term,
-            assessment_type=selected_assessment_type
+            assessment_type=selected_assessment_type,
+            subject__in=subjects,
         ).select_related(
             "student",
             "subject"
@@ -2600,10 +2663,8 @@ def performance_analysis(request):
             key=lambda item: item["average"]
         )
 
-    return render(
-        request,
-        "academic/performance_analysis.html",
-        {
+    context = {
+
             "academic_years": academic_years,
             "terms": terms,
             "assessment_types": assessment_types,
@@ -2613,6 +2674,7 @@ def performance_analysis(request):
             "selected_year": selected_year,
             "selected_term": selected_term,
             "selected_assessment_type": selected_assessment_type,
+            "filter_error": filter_error,
             "selected_class": selected_class,
             "selected_stream": selected_stream,
             "learner_count": learner_count,
@@ -2626,6 +2688,20 @@ def performance_analysis(request):
             "weakest_subject": weakest_subject,
             "branding": branding,
         }
+
+    context.update(build_performance_analytics(
+        request.user,
+        selected_year,
+        selected_term,
+        selected_assessment_type,
+        selected_class,
+        selected_stream,
+    ))
+
+    return render(
+        request,
+        "academic/performance_analysis.html",
+        context,
     )
 
 
@@ -3845,4 +3921,682 @@ def assessment_marks_template(request):
             "Run: python -m pip install openpyxl",
             status=500
         )
+
+
+
+
+@login_required
+def performance_comparison(request):
+    """
+    Explicitly compare two selected assessment periods.
+
+    Modes:
+      school  - administrators only
+      class   - class/stream permitted by existing staff access rules
+      learner - learner visible through get_staff_students()
+
+    No year, term, or assessment type is automatically selected.
+    """
+    from django.core.exceptions import PermissionDenied
+    from django.db.models import Avg, Count
+    from django.shortcuts import render
+    from fees.models import AcademicYear, Term
+    from .models import Assessment, AssessmentType
+
+    admin_user = is_admin_user(request.user)
+
+    years = AcademicYear.objects.all().order_by("-year")
+    terms = Term.objects.select_related("academic_year").all()
+    types = AssessmentType.objects.filter(
+        is_active=True
+    ).order_by("order", "name")
+
+    mode = request.GET.get("mode", "").strip()
+    if not mode:
+        mode = "school" if admin_user else "class"
+
+    if mode not in {"school", "class", "learner"}:
+        mode = "class"
+
+    if mode == "school" and not admin_user:
+        raise PermissionDenied(
+            "Whole-school performance comparison is restricted to administrators."
+        )
+
+    class_name = request.GET.get("class_name", "").strip()
+    stream_name = request.GET.get("stream", "").strip()
+    admission_no = request.GET.get("admission_no", "").strip()
+
+    # The same scope is applied to both sides of the comparison.
+    scoped_students = None
+    scope_error = ""
+
+    if mode == "class":
+        if class_name and stream_name:
+            if not can_view_class(request.user, class_name, stream_name):
+                raise PermissionDenied(
+                    "You do not have access to this class and stream."
+                )
+
+            scoped_students = get_staff_students(request.user).filter(
+                class_name=class_name
+            )
+            stream_student_ids = [
+                student.pk
+                for student in scoped_students
+                if str(get_student_stream_name(student) or "").strip().casefold()
+                == stream_name.casefold()
+            ]
+            scoped_students = scoped_students.filter(
+                pk__in=stream_student_ids
+            )
+        else:
+            scope_error = "Enter the class and stream you want to compare."
+
+    elif mode == "learner":
+        if admission_no:
+            scoped_students = get_staff_students(request.user).filter(
+                admission_no__iexact=admission_no
+            )
+            if not scoped_students.exists():
+                scope_error = (
+                    "The learner was not found among the learners you are "
+                    "permitted to access."
+                )
+        else:
+            scope_error = "Enter the learner's admission number."
+
+    # No default periods or types: every value comes from the user.
+    fields = {
+        "current_year": request.GET.get("current_year", "").strip(),
+        "current_term": request.GET.get("current_term", "").strip(),
+        "current_type": request.GET.get("current_type", "").strip(),
+        "compare_year": request.GET.get("compare_year", "").strip(),
+        "compare_term": request.GET.get("compare_term", "").strip(),
+        "compare_type": request.GET.get("compare_type", "").strip(),
+    }
+
+    submitted = request.GET.get("compare") == "1"
+    errors = []
+    result = None
+    subject_rows = []
+    current_label = ""
+    compare_label = ""
+
+    def selected_object(model, raw_id, label, queryset=None):
+        if not raw_id:
+            errors.append(f"Select {label}.")
+            return None
+        qs = queryset if queryset is not None else model.objects.all()
+        try:
+            obj = qs.filter(pk=int(raw_id)).first()
+        except (TypeError, ValueError):
+            obj = None
+        if obj is None:
+            errors.append(f"The selected {label} is invalid.")
+        return obj
+
+    if submitted:
+        current_year = selected_object(
+            AcademicYear, fields["current_year"], "current academic year", years
+        )
+        compare_year = selected_object(
+            AcademicYear, fields["compare_year"], "comparison academic year", years
+        )
+        current_term = selected_object(
+            Term, fields["current_term"], "current term", terms
+        )
+        compare_term = selected_object(
+            Term, fields["compare_term"], "comparison term", terms
+        )
+        current_type = selected_object(
+            AssessmentType, fields["current_type"], "current assessment type", types
+        )
+        compare_type = selected_object(
+            AssessmentType, fields["compare_type"], "comparison assessment type", types
+        )
+
+        if current_year and current_term:
+            if current_term.academic_year_id != current_year.pk:
+                errors.append("The current term must belong to the current academic year.")
+
+        if compare_year and compare_term:
+            if compare_term.academic_year_id != compare_year.pk:
+                errors.append("The comparison term must belong to the comparison academic year.")
+
+        if scope_error:
+            errors.append(scope_error)
+
+        if mode == "class" and scoped_students is not None and not scoped_students.exists():
+            errors.append("No learners were found for the selected class and stream.")
+
+        if (
+            not errors
+            and current_year and compare_year
+            and current_term and compare_term
+            and current_type and compare_type
+            and scoped_students is not None if mode != "school" else True
+        ):
+            base = Assessment.objects.all()
+
+            if mode == "class" or mode == "learner":
+                base = base.filter(student__in=scoped_students)
+
+            current_qs = base.filter(
+                academic_year=current_year,
+                term=current_term,
+                assessment_type=current_type,
+            )
+            compare_qs = base.filter(
+                academic_year=compare_year,
+                term=compare_term,
+                assessment_type=compare_type,
+            )
+
+            current_stats = current_qs.aggregate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            )
+            compare_stats = compare_qs.aggregate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            )
+
+            current_average = current_stats["average"]
+            compare_average = compare_stats["average"]
+
+            difference = None
+            if current_average is not None and compare_average is not None:
+                difference = round(
+                    float(current_average) - float(compare_average), 2
+                )
+
+            current_subjects = {
+                row["subject_id"]: row
+                for row in current_qs.values(
+                    "subject_id", "subject__name"
+                ).annotate(
+                    average=Avg("score"),
+                    marks_count=Count("pk"),
+                )
+            }
+            compare_subjects = {
+                row["subject_id"]: row
+                for row in compare_qs.values(
+                    "subject_id", "subject__name"
+                ).annotate(
+                    average=Avg("score"),
+                    marks_count=Count("pk"),
+                )
+            }
+
+            all_subject_ids = set(current_subjects) | set(compare_subjects)
+            for subject_id in sorted(
+                all_subject_ids,
+                key=lambda sid: (
+                    (current_subjects.get(sid) or compare_subjects.get(sid))
+                    ["subject__name"] or ""
+                ).casefold(),
+            ):
+                cur = current_subjects.get(subject_id)
+                old = compare_subjects.get(subject_id)
+                cur_avg = cur["average"] if cur else None
+                old_avg = old["average"] if old else None
+                subject_difference = None
+                if cur_avg is not None and old_avg is not None:
+                    subject_difference = round(
+                        float(cur_avg) - float(old_avg), 2
+                    )
+
+                subject_rows.append({
+                    "name": (
+                        cur["subject__name"] if cur
+                        else old["subject__name"]
+                    ),
+                    "current_average": cur_avg,
+                    "compare_average": old_avg,
+                    "difference": subject_difference,
+                    "current_count": cur["marks_count"] if cur else 0,
+                    "compare_count": old["marks_count"] if old else 0,
+                })
+
+            current_label = (
+                f"{current_year} ? {current_term} ? {current_type}"
+            )
+            compare_label = (
+                f"{compare_year} ? {compare_term} ? {compare_type}"
+            )
+
+            result = {
+                "current_average": current_average,
+                "compare_average": compare_average,
+                "difference": difference,
+                "current_marks_count": current_stats["marks_count"],
+                "compare_marks_count": compare_stats["marks_count"],
+                "current_learners_count": current_stats["learners_count"],
+                "compare_learners_count": compare_stats["learners_count"],
+            }
+
+    context = {
+        "branding": SchoolBranding.objects.first(),
+        "is_admin": admin_user,
+        "mode": mode,
+        "years": years,
+        "terms": terms,
+        "assessment_types": types,
+        "fields": fields,
+        "class_name": class_name,
+        "stream_name": stream_name,
+        "admission_no": admission_no,
+        "submitted": submitted,
+        "errors": errors,
+        "result": result,
+        "subject_rows": subject_rows,
+        "current_label": current_label,
+        "compare_label": compare_label,
+        "scope_error": scope_error,
+    }
+    return render(
+        request,
+        "academic/performance_comparison.html",
+        context,
+    )
+
+
+@login_required
+def whole_school_performance_analysis(request):
+    """Administrator-only school-wide academic performance analysis."""
+    from django.core.exceptions import PermissionDenied
+    from django.db.models import Avg, Count, Max, Min
+    from django.shortcuts import get_object_or_404
+    from fees.models import AcademicYear, Term
+    from .models import Assessment, AssessmentType
+
+    if not is_admin_user(request.user):
+        raise PermissionDenied(
+            "Whole-school performance analysis is restricted to administrators."
+        )
+
+    branding = (SchoolBranding.objects.filter(is_active=True).first() or SchoolBranding.objects.first())
+    academic_years = AcademicYear.objects.all().order_by("-year")
+    selected_year_id = request.GET.get("year", "").strip()
+    selected_term_id = request.GET.get("term", "").strip()
+    selected_type_id = request.GET.get("assessment_type", "").strip()
+
+    selected_year = None
+    selected_term = None
+    selected_assessment_type = None
+    filter_error = ""
+
+    if selected_year_id:
+        if selected_year_id.isdigit():
+            selected_year = AcademicYear.objects.filter(
+                pk=selected_year_id
+            ).first()
+
+        if not selected_year:
+            filter_error = (
+                "The selected academic year is invalid. "
+                "Please choose a valid academic year."
+            )
+    else:
+        selected_year = academic_years.first()
+
+    terms = Term.objects.none()
+    if selected_year:
+        terms = Term.objects.filter(
+            academic_year=selected_year
+        ).order_by("order", "name")
+
+        if selected_term_id:
+            if selected_term_id.isdigit():
+                selected_term = terms.filter(
+                    pk=selected_term_id
+                ).first()
+
+            if not selected_term and not filter_error:
+                filter_error = (
+                    "The selected term is invalid or does not belong "
+                    "to the selected academic year."
+                )
+        else:
+            selected_term = terms.order_by("-order", "-pk").first()
+    elif selected_term_id and not filter_error:
+        filter_error = (
+            "Choose a valid academic year before selecting a term."
+        )
+
+    assessment_types = AssessmentType.objects.filter(
+        is_active=True
+    ).order_by("order", "name")
+
+    if selected_type_id:
+        if selected_type_id.isdigit():
+            selected_assessment_type = AssessmentType.objects.filter(
+                pk=selected_type_id,
+                is_active=True,
+            ).first()
+
+        if not selected_assessment_type and not filter_error:
+            filter_error = (
+                "The selected assessment type is invalid or inactive. "
+                "Please choose an available assessment type."
+            )
+
+    empty_summary = {
+        "average": None,
+        "marks_count": 0,
+        "learners_count": 0,
+        "highest": None,
+        "lowest": None,
+    }
+    summary = empty_summary.copy()
+    assessment_comparison = []
+    term_comparison = []
+    subject_rankings = []
+    class_rankings = []
+
+    if selected_year:
+        # Require the stored academic year and the term's academic year
+        # to agree so inconsistent legacy records are excluded.
+        year_marks = Assessment.objects.filter(
+            academic_year=selected_year,
+            term__academic_year=selected_year,
+        ).select_related(
+            "student", "subject", "term", "assessment_type"
+        )
+
+        current_marks = year_marks
+        if selected_term:
+            current_marks = current_marks.filter(term=selected_term)
+        if selected_assessment_type:
+            current_marks = current_marks.filter(
+                assessment_type=selected_assessment_type
+            )
+
+        totals = current_marks.aggregate(
+            average=Avg("score"),
+            marks_count=Count("pk"),
+            highest=Max("score"),
+            lowest=Min("score"),
+        )
+        summary.update(totals)
+        summary["learners_count"] = current_marks.order_by().values(
+            "student_id"
+        ).distinct().count()
+
+        # Assessment types are compared inside the selected term.
+        # Do not apply the selected type filter to this comparison.
+        type_marks = year_marks
+        if selected_term:
+            type_marks = type_marks.filter(term=selected_term)
+
+        assessment_comparison = list(
+            type_marks.values(
+                "assessment_type__name"
+            ).annotate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            ).order_by("-average", "assessment_type__name")
+        )
+
+        # Term comparison spans the year. The chosen term must not
+        # narrow this queryset; the assessment-type filter still applies.
+        term_marks = year_marks
+        if selected_assessment_type:
+            term_marks = term_marks.filter(
+                assessment_type=selected_assessment_type
+            )
+
+        term_comparison = list(
+            term_marks.values(
+                "term__name", "term__order"
+            ).annotate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            ).order_by("term__order", "term__name")
+        )
+
+        subject_rankings = list(
+            current_marks.values(
+                "subject__name"
+            ).annotate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            ).order_by("-average", "subject__name")
+        )
+
+        class_rankings = list(
+            current_marks.values(
+                "student__class_name"
+            ).annotate(
+                average=Avg("score"),
+                marks_count=Count("pk"),
+                learners_count=Count("student_id", distinct=True),
+            ).order_by("-average", "student__class_name")
+        )
+
+    context = {
+        "branding": branding,
+        "academic_years": academic_years,
+        "terms": terms,
+        "assessment_types": assessment_types,
+        "selected_year": selected_year,
+        "selected_term": selected_term,
+        "selected_assessment_type": selected_assessment_type,
+        "summary": summary,
+        "assessment_comparison": assessment_comparison,
+        "term_comparison": term_comparison,
+        "subject_rankings": subject_rankings,
+        "class_rankings": class_rankings,
+        "filter_error": filter_error,
+    }
+    return render(
+        request,
+        "academic/whole_school_performance.html",
+        context,
+    )
+
+
+
+@login_required
+def learner_performance_analysis(request):
+    """Compare a permitted learner's recorded results across assessments and terms."""
+
+    branding = (SchoolBranding.objects.filter(is_active=True).first() or SchoolBranding.objects.first())
+    academic_years = AcademicYear.objects.all().order_by("-year")
+    assessment_types = AssessmentType.objects.filter(
+        is_active=True
+    ).order_by("order", "name")
+
+    admission_no = request.GET.get("admission_no", "").strip()
+    year_id = request.GET.get("year", "").strip()
+    term_id = request.GET.get("term", "").strip()
+    assessment_type_id = request.GET.get("assessment_type", "").strip()
+
+    student = None
+    selected_year = None
+    selected_term = None
+    selected_assessment_type = None
+    terms = Term.objects.none()
+    assessment_comparison = []
+    term_comparison = []
+    subject_comparison = []
+    overall_average = None
+    recorded_subject_count = 0
+    error_message = ""
+
+    if year_id:
+        if year_id.isdigit():
+            selected_year = AcademicYear.objects.filter(
+                pk=year_id
+            ).first()
+
+        if selected_year:
+            terms = Term.objects.filter(
+                academic_year=selected_year
+            ).order_by("order", "name")
+        else:
+            terms = Term.objects.none()
+            error_message = (
+                "The selected academic year is invalid. "
+                "Please choose a valid academic year."
+            )
+
+    if term_id:
+        if selected_year:
+            term_query = Term.objects.filter(
+                academic_year=selected_year
+            )
+        elif not year_id:
+            term_query = Term.objects.all()
+        else:
+            term_query = Term.objects.none()
+
+        if term_id.isdigit():
+            selected_term = term_query.filter(pk=term_id).first()
+
+        if not selected_term and not error_message:
+            error_message = (
+                "The selected term is invalid or does not belong "
+                "to the selected academic year."
+            )
+
+    if assessment_type_id:
+        if assessment_type_id.isdigit():
+            selected_assessment_type = AssessmentType.objects.filter(
+                pk=assessment_type_id,
+                is_active=True,
+            ).first()
+
+        if not selected_assessment_type and not error_message:
+            error_message = (
+                "The selected assessment type is invalid or inactive. "
+                "Please choose an available assessment type."
+            )
+
+    if admission_no:
+        # This queryset is the staff-access boundary for learner records.
+        student = get_staff_students(request.user).filter(
+            admission_no__iexact=admission_no
+        ).first()
+
+        if student is None:
+            error_message = (
+                "No learner with that admission number was found "
+                "in the records you are permitted to access."
+            )
+
+    if student and selected_year:
+        marks = Assessment.objects.filter(
+            student=student,
+            academic_year=selected_year,
+        ).select_related("term", "subject", "assessment_type")
+
+        # Compare assessment types within the selected term.
+        if selected_term:
+            current_marks = marks.filter(term=selected_term)
+
+            for assessment_type in assessment_types:
+                rows = current_marks.filter(assessment_type=assessment_type)
+                stats = rows.aggregate(
+                    average=Avg("score"),
+                    count=Count("id"),
+                    subjects=Count("subject_id", distinct=True),
+                )
+                assessment_comparison.append({
+                    "name": assessment_type.name,
+                    "average": (
+                        round(float(stats["average"]), 2)
+                        if stats["average"] is not None else None
+                    ),
+                    "count": stats["count"],
+                    "subjects": stats["subjects"],
+                })
+
+            subject_marks = current_marks
+            if selected_assessment_type:
+                subject_marks = subject_marks.filter(
+                    assessment_type=selected_assessment_type
+                )
+
+            subject_stats = list(
+                subject_marks.values("subject__name").annotate(
+                    average=Avg("score"),
+                    count=Count("id"),
+                ).order_by("subject__name")
+            )
+            subject_comparison = [{
+                "name": item["subject__name"],
+                "average": (
+                    round(float(item["average"]), 2)
+                    if item["average"] is not None else None
+                ),
+                "count": item["count"],
+            } for item in subject_stats]
+
+            summary = subject_marks.aggregate(
+                average=Avg("score"),
+                subjects=Count("subject_id", distinct=True),
+            )
+            overall_average = (
+                round(float(summary["average"]), 2)
+                if summary["average"] is not None else None
+            )
+            recorded_subject_count = summary["subjects"] or 0
+
+        # Compare terms within the selected academic year.
+        term_marks = marks
+        if selected_assessment_type:
+            term_marks = term_marks.filter(
+                assessment_type=selected_assessment_type
+            )
+
+        term_stats = list(
+            term_marks.values(
+                "term_id", "term__name", "term__order"
+            ).annotate(
+                average=Avg("score"),
+                count=Count("id"),
+                subjects=Count("subject_id", distinct=True),
+            ).order_by("term__order", "term_id")
+        )
+
+        term_comparison = [{
+            "name": item["term__name"],
+            "order": item["term__order"],
+            "average": (
+                round(float(item["average"]), 2)
+                if item["average"] is not None else None
+            ),
+            "count": item["count"],
+            "subjects": item["subjects"],
+        } for item in term_stats]
+
+    return render(
+        request,
+        "academic/learner_performance_analysis.html",
+        {
+            "branding": branding,
+            "academic_years": academic_years,
+            "terms": terms,
+            "assessment_types": assessment_types,
+            "admission_no": admission_no,
+            "student": student,
+            "selected_year": selected_year,
+            "selected_term": selected_term,
+            "selected_assessment_type": selected_assessment_type,
+            "assessment_comparison": assessment_comparison,
+            "term_comparison": term_comparison,
+            "subject_comparison": subject_comparison,
+            "overall_average": overall_average,
+            "recorded_subject_count": recorded_subject_count,
+            "error_message": error_message,
+        },
+    )
 

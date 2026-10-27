@@ -1,13 +1,15 @@
 ﻿from django.db.models import Q
 
 from hr_payroll.models import Employee
-from timetable.legacy_compat import (
-    Teacher,
-    TeacherClassAssignment,
-    TeacherTeachingAssignment,
-    TimetableEntry,
-    Subject,
-)
+from timetable.models import (
+    TimetableSubject,
+    TimetableTeacher,
+    TimetableLesson,
+ )
+from timetable.advanced_models import (
+    TimetableTeacherClassAssignment,
+    TimetableTeacherTeachingAssignment,
+ )
 from students.models import Student
 
 
@@ -50,7 +52,7 @@ def get_staff_employee(user):
 
 def get_staff_teacher(user):
     """
-    Return the active scheduling Teacher connected
+    Return the active timetable Teacher connected
     to the logged-in user's Employee.
     """
     employee = get_staff_employee(user)
@@ -59,10 +61,10 @@ def get_staff_teacher(user):
         return None
 
     return (
-        Teacher.objects
+        TimetableTeacher.objects
         .filter(
             employee=employee,
-            is_active=True,
+        active=True,
         )
         .first()
     )
@@ -84,7 +86,7 @@ def get_teacher_class_assignments(user):
     """
     if is_admin_user(user):
         return (
-            TeacherClassAssignment.objects
+            TimetableTeacherClassAssignment.objects
             .filter(is_active=True)
             .select_related("teacher")
         )
@@ -92,10 +94,10 @@ def get_teacher_class_assignments(user):
     teacher = get_staff_teacher(user)
 
     if not teacher:
-        return TeacherClassAssignment.objects.none()
+        return TimetableTeacherClassAssignment.objects.none()
 
     return (
-        TeacherClassAssignment.objects
+        TimetableTeacherClassAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -114,7 +116,7 @@ def get_teacher_teaching_assignments(user):
     """
     if is_admin_user(user):
         return (
-            TeacherTeachingAssignment.objects
+            TimetableTeacherTeachingAssignment.objects
             .filter(is_active=True)
             .select_related("teacher", "subject")
         )
@@ -122,10 +124,10 @@ def get_teacher_teaching_assignments(user):
     teacher = get_staff_teacher(user)
 
     if not teacher:
-        return TeacherTeachingAssignment.objects.none()
+        return TimetableTeacherTeachingAssignment.objects.none()
 
     return (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -327,19 +329,19 @@ def can_enter_marks(
 
     teaching_assignments = get_teacher_teaching_assignments(user)
 
-    # Academic Subject and Scheduling Subject are separate models.
+    # Academic Subject and Timetable Subject are separate models.
     # Match the teacher assignment using subject code first, then name.
-    scheduling_subject = Subject.objects.filter(
+    timetable_subject = TimetableSubject.objects.filter(
         is_active=True,
     ).filter(
         Q(code=subject.code) | Q(name=subject.name)
     ).first()
 
-    if not scheduling_subject:
+    if not timetable_subject:
         return False
 
     teaching_assignments = teaching_assignments.filter(
-        subject=scheduling_subject,
+        subject=timetable_subject,
     )
 
     for assignment in teaching_assignments:
@@ -394,13 +396,13 @@ def get_staff_subjects_for_class(
         ):
             continue
 
-        scheduling_subject = assignment.subject
+        timetable_subject = assignment.subject
 
         academic_subject = AcademicSubject.objects.filter(
             is_active=True,
         ).filter(
-            Q(code=scheduling_subject.code)
-            | Q(name=scheduling_subject.name)
+            Q(code=timetable_subject.code)
+            | Q(name=timetable_subject.name)
         ).first()
 
         if academic_subject:
@@ -615,7 +617,7 @@ def get_staff_timetable(user):
     """
     if is_admin_user(user):
         return (
-            TimetableEntry.objects
+            TimetableLesson.objects
             .filter(is_active=True)
             .select_related(
                 "teacher",
@@ -629,10 +631,10 @@ def get_staff_timetable(user):
     teacher = get_staff_teacher(user)
 
     if not teacher:
-        return TimetableEntry.objects.none()
+        return TimetableLesson.objects.none()
 
     return (
-        TimetableEntry.objects
+        TimetableLesson.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -722,6 +724,11 @@ def role_permission_required(permission_codename, app_label):
         return wrapped
 
     return decorator
+
+
+
+
+
 
 
 

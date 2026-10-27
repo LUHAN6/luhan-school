@@ -1045,6 +1045,177 @@ class StaffLoan(models.Model):
 # PAYROLL PERIOD
 # ============================================================
 
+class LoanApplication(models.Model):
+
+    STATUS_CHOICES = [
+        ("DRAFT", "Draft"),
+        ("SUBMITTED", "Submitted"),
+        ("UNDER_REVIEW", "Under Review"),
+        ("APPROVED", "Approved"),
+        ("REJECTED", "Rejected"),
+        ("CANCELLED", "Cancelled"),
+        ("DISBURSED", "Disbursed"),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="loan_applications",
+    )
+
+    application_number = models.CharField(
+        max_length=40,
+        unique=True,
+        blank=True,
+    )
+
+    loan_name = models.CharField(
+        max_length=150,
+    )
+
+    requested_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
+
+    approved_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
+
+    requested_installment = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
+
+    approved_installment = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
+
+    repayment_months = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+    )
+
+    purpose = models.TextField()
+
+    supporting_document = models.FileField(
+        upload_to="hr/loan_applications/",
+        blank=True,
+        null=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="DRAFT",
+    )
+
+    staff_notes = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    admin_notes = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    reviewed_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reviewed_loan_applications",
+    )
+
+    reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    approved_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    rejected_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    submitted_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    disbursed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    staff_loan = models.OneToOneField(
+        "StaffLoan",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="application",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.application_number:
+            year = timezone.localdate().year
+
+            last = (
+                LoanApplication.objects
+                .filter(
+                    application_number__startswith=f"LA-{year}-"
+                )
+                .order_by("-id")
+                .first()
+            )
+
+            sequence = 1
+
+            if last and last.application_number:
+                try:
+                    sequence = (
+                        int(last.application_number.rsplit("-", 1)[-1])
+                        + 1
+                    )
+                except (ValueError, TypeError):
+                    sequence = 1
+
+            self.application_number = (
+                f"LA-{year}-{sequence:05d}"
+            )
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"{self.application_number} - "
+            f"{self.employee.full_name}"
+        )
+
 class PayrollPeriod(models.Model):
 
     STATUS_CHOICES = [
@@ -1392,3 +1563,5 @@ class EmployeeExit(models.Model):
             f"{self.employee.full_name} - "
             f"{self.exit_type}"
         )
+
+

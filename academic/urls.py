@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import performance_pdf
 from . import assessment_countdown
 from . import excel_marks
 from . import excel_marks_upload
@@ -80,6 +81,23 @@ urlpatterns = [
     ),
 
     path(
+        "whole-school-performance/",
+        views.whole_school_performance_analysis,
+        name="whole_school_performance_analysis",
+    ),
+    path(
+        "learner-performance/",
+        views.learner_performance_analysis,
+        name="learner_performance_analysis",
+    ),
+
+    path(
+        "performance-centre/",
+        views.performance_centre,
+        name="performance_centre"
+    ),
+
+    path(
         "performance/",
         views.performance_analysis,
         name="performance_analysis"
@@ -106,3 +124,10 @@ path(
         name="excel_upload_subject",
     ),
 ]
+
+# Explicit user-selected academic comparison tool
+urlpatterns.append(path('performance-comparison/', views.performance_comparison, name='performance_comparison'))
+
+# Professionally formatted academic performance PDF reports
+urlpatterns.append(path('performance-pdf/', performance_pdf.performance_pdf_center, name='performance_pdf_center'))
+urlpatterns.append(path('performance-comparison/pdf/', performance_pdf.performance_comparison_pdf, name='performance_comparison_pdf'))

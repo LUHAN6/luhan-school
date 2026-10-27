@@ -2,25 +2,206 @@
 
 {% block professional_content %}
 
-<div class="card">
-    <div class="card-body">
+<style>
+    .create-doc-page {
+        --primary: #2563eb;
+        --dark: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --light: #f8fafc;
+    }
 
+    .create-header {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        color: #fff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, .10);
+    }
+
+    .create-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+    .create-header p {
+        margin: 4px 0 0;
+        color: rgba(255,255,255,.72);
+        font-size: .8rem;
+    }
+
+    .form-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .82rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .section-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 23px;
+        height: 23px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: var(--primary);
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .field-label {
+        display: block;
+        font-size: .73rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 5px;
+    }
+
+    .form-control,
+    .form-select {
+        border-color: var(--border);
+        border-radius: 7px;
+        font-size: .82rem;
+        min-height: 38px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 .15rem rgba(37,99,235,.10);
+    }
+
+    textarea.form-control {
+        min-height: 260px;
+        resize: vertical;
+        line-height: 1.5;
+    }
+
+    .field-help {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: .69rem;
+        line-height: 1.4;
+    }
+
+    .conditional-section {
+        padding: 12px;
+        background: var(--light);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        margin-top: 2px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 14px;
+        margin-top: 4px;
+        border-top: 1px solid var(--border);
+    }
+
+    .form-actions .btn {
+        min-height: 38px;
+        border-radius: 7px;
+        font-size: .8rem;
+        font-weight: 600;
+        padding: 7px 15px;
+    }
+
+    .required-mark {
+        color: #dc2626;
+    }
+
+    @media (max-width: 767.98px) {
+        .create-header {
+            padding: 15px;
+            border-radius: 11px;
+        }
+
+        .create-header h2 {
+            font-size: 1.1rem;
+        }
+
+        .create-header p {
+            font-size: .74rem;
+        }
+
+        .form-card {
+            padding: 13px;
+            border-radius: 10px;
+        }
+
+        textarea.form-control {
+            min-height: 220px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .form-card {
+            padding: 11px;
+        }
+
+        .create-header h2 {
+            font-size: 1rem;
+        }
+    }
+</style>
+
+<div class="create-doc-page">
+
+    <!-- HEADER -->
+    <div class="create-header">
         <h2>Create Professional Document</h2>
-
-        <p class="text-muted">
-            Select the academic period and one of your assigned
-            classes and subjects.
+        <p>
+            Select the academic period and your assigned class, stream and subject.
         </p>
+    </div>
+
+    <!-- FORM -->
+    <div class="form-card">
 
         <form method="post" enctype="multipart/form-data">
 
             {% csrf_token %}
 
-            <div class="row g-3">
+            <!-- ACADEMIC INFORMATION -->
+            <div class="section-title">
+                <span class="section-number">1</span>
+                Academic Information
+            </div>
+
+            <div class="row g-2 mb-4">
 
                 <!-- DOCUMENT TYPE -->
-                <div class="col-md-4">
-                    <label class="form-label">Document Type</label>
+                <div class="col-12 col-md-4">
+                    <label class="field-label">
+                        Document Type <span class="required-mark">*</span>
+                    </label>
 
                     <select name="document_type"
                             id="documentType"
@@ -39,8 +220,10 @@
                 </div>
 
                 <!-- ACADEMIC YEAR -->
-                <div class="col-md-4">
-                    <label class="form-label">Academic Year</label>
+                <div class="col-12 col-md-4">
+                    <label class="field-label">
+                        Academic Year <span class="required-mark">*</span>
+                    </label>
 
                     <select name="academic_year"
                             class="form-select"
@@ -58,8 +241,10 @@
                 </div>
 
                 <!-- TERM -->
-                <div class="col-md-4">
-                    <label class="form-label">Term</label>
+                <div class="col-12 col-md-4">
+                    <label class="field-label">
+                        Term <span class="required-mark">*</span>
+                    </label>
 
                     <select name="term"
                             class="form-select"
@@ -77,9 +262,10 @@
                 </div>
 
                 <!-- ASSIGNMENT -->
-                <div class="col-md-12">
-                    <label class="form-label">
+                <div class="col-12">
+                    <label class="field-label">
                         Assigned Class / Stream / Subject
+                        <span class="required-mark">*</span>
                     </label>
 
                     <select name="class_assignment"
@@ -99,48 +285,61 @@
                     </select>
                 </div>
 
-                <!-- ================================================= -->
-                <!-- SCHEME OF WORK DATE RANGE -->
-                <!-- ================================================= -->
+            </div>
 
-                <div class="col-md-6"
+            <!-- DOCUMENT DETAILS -->
+            <div class="section-title">
+                <span class="section-number">2</span>
+                Document Details
+            </div>
+
+            <div class="row g-2 mb-4">
+
+                <!-- SCHEME FROM DATE -->
+                <div class="col-12 col-md-6"
                      id="schemeFromDateBox"
                      style="display:none;">
 
-                    <label class="form-label">
-                        From Date
-                    </label>
+                    <div class="conditional-section">
 
-                    <input type="date"
-                           name="from_date"
-                           id="fromDate"
-                           class="form-control">
+                        <label class="field-label">
+                            From Date
+                        </label>
+
+                        <input type="date"
+                               name="from_date"
+                               id="fromDate"
+                               class="form-control">
+
+                    </div>
 
                 </div>
 
-                <div class="col-md-6"
+                <!-- SCHEME TO DATE -->
+                <div class="col-12 col-md-6"
                      id="schemeToDateBox"
                      style="display:none;">
 
-                    <label class="form-label">
-                        To Date
-                    </label>
+                    <div class="conditional-section">
 
-                    <input type="date"
-                           name="to_date"
-                           id="toDate"
-                           class="form-control">
+                        <label class="field-label">
+                            To Date
+                        </label>
+
+                        <input type="date"
+                               name="to_date"
+                               id="toDate"
+                               class="form-control">
+
+                    </div>
 
                 </div>
 
-                <!-- ================================================= -->
                 <!-- LESSON DATE -->
-                <!-- ================================================= -->
-
-                <div class="col-md-4"
+                <div class="col-12 col-md-4"
                      id="lessonDateBox">
 
-                    <label class="form-label">
+                    <label class="field-label">
                         Lesson Date
                     </label>
 
@@ -151,11 +350,10 @@
                 </div>
 
                 <!-- START TIME -->
-
-                <div class="col-md-4"
+                <div class="col-12 col-md-4"
                      id="startTimeBox">
 
-                    <label class="form-label">
+                    <label class="field-label">
                         Start Time
                     </label>
 
@@ -166,11 +364,10 @@
                 </div>
 
                 <!-- END TIME -->
-
-                <div class="col-md-4"
+                <div class="col-12 col-md-4"
                      id="endTimeBox">
 
-                    <label class="form-label">
+                    <label class="field-label">
                         End Time
                     </label>
 
@@ -181,24 +378,32 @@
                 </div>
 
                 <!-- TITLE -->
-
                 <div class="col-12">
-                    <label class="form-label">
+                    <label class="field-label">
                         Title
                     </label>
 
                     <input type="text"
                            name="title"
                            class="form-control"
-                           placeholder="Document title">
+                           placeholder="Enter document title">
                 </div>
 
-                <!-- CONTENT -->
+            </div>
 
+            <!-- CONTENT -->
+            <div class="section-title" id="contentSectionTitle">
+                <span class="section-number">3</span>
+                Document Content
+            </div>
+
+            <div class="row g-2">
+
+                <!-- CONTENT -->
                 <div class="col-12"
                      id="contentBox">
 
-                    <label class="form-label">
+                    <label class="field-label">
                         Content
                     </label>
 
@@ -210,11 +415,10 @@
                 </div>
 
                 <!-- FILE -->
-
                 <div class="col-12"
                      id="uploadBox">
 
-                    <label class="form-label">
+                    <label class="field-label">
                         Upload PDF / Word
                     </label>
 
@@ -223,43 +427,38 @@
                            class="form-control"
                            accept=".pdf,.doc,.docx">
 
-                    <small class="text-muted">
+                    <small class="field-help">
                         Schemes of Work require a PDF or Word upload.
                         Lesson Plans may be typed or uploaded.
                     </small>
 
                 </div>
 
-                <!-- BUTTONS -->
+            </div>
 
-                <div class="col-12">
+            <!-- ACTIONS -->
+            <div class="form-actions">
 
-                    <button type="submit"
-                            class="btn btn-primary">
+                <button type="submit"
+                        class="btn btn-primary">
+                    Save Draft
+                </button>
 
-                        Save Draft
-
-                    </button>
-
-                    <a href="{% url 'professional_documents:portal' %}"
-                       class="btn btn-secondary">
-
-                        Cancel
-
-                    </a>
-
-                </div>
+                <a href="{% url 'professional_documents:portal' %}"
+                   class="btn btn-secondary">
+                    Cancel
+                </a>
 
             </div>
 
         </form>
 
     </div>
+
 </div>
 
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
 
     const type =
@@ -283,10 +482,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const content =
         document.getElementById("contentBox");
 
+    const contentSectionTitle =
+        document.getElementById("contentSectionTitle");
+
     function updateDocumentFields() {
 
-        const selected =
-            type.value;
+        const selected = type.value;
 
         if (selected === "SCHEME") {
 
@@ -301,6 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Scheme is uploaded, not typed
             content.style.display = "none";
+            contentSectionTitle.style.display = "none";
 
         } else {
 
@@ -313,6 +515,7 @@ document.addEventListener("DOMContentLoaded", function () {
             endTime.style.display = "block";
 
             content.style.display = "block";
+            contentSectionTitle.style.display = "flex";
         }
     }
 
@@ -324,7 +527,6 @@ document.addEventListener("DOMContentLoaded", function () {
     updateDocumentFields();
 
 });
-
 </script>
 
 {% endblock %}

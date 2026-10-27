@@ -1,286 +1,601 @@
-
-{% extends "termly_submission/base.html" %}
+﻿{% extends "termly_submission/base.html" %}
 
 {% block termly_content %}
 
-<div class="card mb-4">
-    <div class="card-body">
+<style>
+    .termly-page {
+        --primary: #2563eb;
+        --dark: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --light: #f8fafc;
+    }
 
+    .termly-header {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        color: #fff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, .10);
+    }
+
+    .termly-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+    .termly-header p {
+        margin: 4px 0 0;
+        color: rgba(255,255,255,.72);
+        font-size: .8rem;
+    }
+
+    .termly-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .termly-card-body {
+        padding: 14px;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: .73rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 5px;
+    }
+
+    .filter-select {
+        min-height: 38px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        font-size: .82rem;
+    }
+
+    .filter-btn {
+        min-height: 38px;
+        border-radius: 7px;
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+    /* SUMMARY */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .summary-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        padding: 14px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .summary-label {
+        color: var(--muted);
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .025em;
+    }
+
+    .summary-number {
+        color: var(--dark);
+        font-size: 1.5rem;
+        line-height: 1.2;
+        font-weight: 800;
+        margin-top: 5px;
+    }
+
+    .summary-percent {
+        color: var(--primary);
+    }
+
+    /* OUTSTANDING */
+    .outstanding-box {
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #1e3a8a;
+        border-radius: 9px;
+        padding: 11px 13px;
+        margin-bottom: 16px;
+        font-size: .78rem;
+    }
+
+    .outstanding-box strong {
+        font-weight: 800;
+    }
+
+    .outstanding-box small {
+        display: block;
+        margin-top: 3px;
+        color: #64748b;
+    }
+
+    /* TABLE */
+    .details-title {
+        font-size: .95rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .termly-table {
+        min-width: 900px;
+        margin: 0;
+        font-size: .76rem;
+    }
+
+    .termly-table thead th {
+        background: #f8fafc;
+        color: #475569;
+        border-bottom: 1px solid var(--border);
+        border-top: 0;
+        padding: 9px 8px;
+        font-size: .67rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .termly-table tbody td {
+        padding: 9px 8px;
+        border-color: #edf2f7;
+        vertical-align: middle;
+        color: #334155;
+    }
+
+    .termly-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .percentage {
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .approved {
+        color: #15803d;
+        font-weight: 700;
+    }
+
+    .outstanding {
+        color: #dc2626;
+        font-weight: 700;
+    }
+
+    .fraction {
+        white-space: nowrap;
+    }
+
+    /* FEEDBACK */
+    .feedback-card {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 11px;
+        margin-top: 12px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .feedback-body {
+        padding: 13px;
+    }
+
+    .feedback-title {
+        font-size: .86rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 7px;
+    }
+
+    .feedback-text {
+        color: #475569;
+        font-size: .78rem;
+        line-height: 1.55;
+        margin-bottom: 6px;
+    }
+
+    .feedback-date {
+        color: var(--muted);
+        font-size: .68rem;
+    }
+
+    .empty-message {
+        padding: 28px 15px !important;
+        text-align: center;
+        color: var(--muted);
+        font-size: .8rem;
+    }
+
+    @media (max-width: 767.98px) {
+
+        .termly-header {
+            padding: 15px;
+            border-radius: 11px;
+        }
+
+        .termly-header h2 {
+            font-size: 1.1rem;
+        }
+
+        .termly-header p {
+            font-size: .74rem;
+        }
+
+        .termly-card {
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .termly-card-body {
+            padding: 12px;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .summary-card {
+            padding: 12px;
+        }
+
+        .summary-number {
+            font-size: 1.35rem;
+        }
+
+        .termly-table {
+            min-width: 850px;
+        }
+
+    }
+
+    @media (max-width: 380px) {
+
+        .termly-header h2 {
+            font-size: 1rem;
+        }
+
+        .summary-card {
+            padding: 10px;
+        }
+
+    }
+</style>
+
+
+<div class="termly-page">
+
+    <!-- HEADER -->
+    <div class="termly-header">
         <h2>Termly Submission Report</h2>
 
-        <p class="text-muted">
+        <p>
             Employee:
             <strong>{{ teacher_name }}</strong>
         </p>
-
-        <form method="get"
-              class="row g-3">
-
-            <div class="col-md-5">
-
-                <label class="form-label">
-                    Academic Year
-                </label>
-
-                <select name="academic_year"
-                        class="form-select">
-
-                    {% for year in academic_years %}
-
-                    <option value="{{ year.pk }}"
-                        {% if selected_year.pk == year.pk %}
-                            selected
-                        {% endif %}>
-
-                        {{ year.year }}
-
-                    </option>
-
-                    {% endfor %}
-
-                </select>
-
-            </div>
-
-            <div class="col-md-5">
-
-                <label class="form-label">
-                    Term
-                </label>
-
-                <select name="term"
-                        class="form-select">
-
-                    {% for term in terms %}
-
-                    <option value="{{ term.pk }}"
-                        {% if selected_term.pk == term.pk %}
-                            selected
-                        {% endif %}>
-
-                        {{ term.name }}
-
-                    </option>
-
-                    {% endfor %}
-
-                </select>
-
-            </div>
-
-            <div class="col-md-2 d-flex align-items-end">
-
-                <button class="btn btn-primary w-100">
-                    View
-                </button>
-
-            </div>
-
-        </form>
-
     </div>
-</div>
 
 
-{% if report %}
+    <!-- FILTER -->
+    <div class="termly-card">
 
-<div class="row mb-4">
+        <div class="termly-card-body">
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6>Total Expected</h6>
-                <h2>{{ report.total_expected }}</h2>
-            </div>
+            <form method="get">
+
+                <div class="row g-2 align-items-end">
+
+                    <div class="col-12 col-md-5">
+
+                        <label class="filter-label">
+                            Academic Year
+                        </label>
+
+                        <select name="academic_year"
+                                class="form-select filter-select">
+
+                            {% for year in academic_years %}
+
+                            <option value="{{ year.pk }}"
+                                {% if selected_year.pk == year.pk %}
+                                    selected
+                                {% endif %}>
+
+                                {{ year.year }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-12 col-md-5">
+
+                        <label class="filter-label">
+                            Term
+                        </label>
+
+                        <select name="term"
+                                class="form-select filter-select">
+
+                            {% for term in terms %}
+
+                            <option value="{{ term.pk }}"
+                                {% if selected_term.pk == term.pk %}
+                                    selected
+                                {% endif %}>
+
+                                {{ term.name }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-12 col-md-2">
+
+                        <button type="submit"
+                                class="btn btn-primary filter-btn w-100">
+
+                            View Report
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
         </div>
+
     </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6>Approved</h6>
-                <h2>{{ report.total_approved }}</h2>
+
+    {% if report %}
+
+    <!-- SUMMARY -->
+    <div class="summary-grid">
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Total Expected
             </div>
-        </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6>Submission Percentage</h6>
-                <h2>{{ report.overall_percentage }}%</h2>
+            <div class="summary-number">
+                {{ report.total_expected }}
             </div>
+
         </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Approved
+            </div>
+
+            <div class="summary-number approved">
+                {{ report.total_approved }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Submission Percentage
+            </div>
+
+            <div class="summary-number summary-percent">
+                {{ report.overall_percentage }}%
+            </div>
+
+        </div>
+
     </div>
 
-</div>
+
+    <!-- OUTSTANDING -->
+    <div class="outstanding-box">
+
+        <strong>
+            Outstanding: {{ report.total_outstanding }}
+        </strong>
+
+        <small>
+            Only approved Professional Documents are counted.
+        </small>
+
+    </div>
 
 
-<div class="alert alert-info">
+    <!-- SUBJECT DETAILS -->
+    <div class="termly-card">
 
-    <strong>Outstanding:</strong>
-    {{ report.total_outstanding }}
+        <div class="termly-card-body">
 
-    <br>
+            <h4 class="details-title mb-3">
+                Subject Submission Details
+            </h4>
 
-    <small>
-        Only approved Professional Documents are counted.
-    </small>
+            <div class="table-wrap">
 
-</div>
+                <table class="table termly-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Class</th>
+                            <th>Stream</th>
+                            <th>Subject</th>
+                            <th>Schemes</th>
+                            <th>Records</th>
+                            <th>Lesson Plans</th>
+                            <th>Expected</th>
+                            <th>Approved</th>
+                            <th>Outstanding</th>
+                            <th>%</th>
+                        </tr>
+
+                    </thead>
 
 
-<div class="card">
+                    <tbody>
 
-    <div class="card-body">
+                    {% for row in report.rows %}
 
-        <h4>
-            Subject Submission Details
-        </h4>
+                        <tr>
 
-        <div class="table-responsive">
+                            <td>
+                                {{ row.requirement.class_name }}
+                            </td>
 
-            <table class="table table-bordered table-striped">
+                            <td>
+                                {{ row.requirement.stream|default:"-" }}
+                            </td>
 
-                <thead>
+                            <td>
+                                <strong>
+                                    {{ row.requirement.subject }}
+                                </strong>
+                            </td>
 
-                    <tr>
-                        <th>Class</th>
-                        <th>Stream</th>
-                        <th>Subject</th>
+                            <td class="fraction">
+                                {{ row.schemes_approved }}
+                                /
+                                {{ row.requirement.expected_schemes }}
+                            </td>
 
-                        <th>Schemes</th>
-                        <th>Records</th>
-                        <th>Lesson Plans</th>
+                            <td class="fraction">
+                                {{ row.records_approved }}
+                                /
+                                {{ row.requirement.expected_records }}
+                            </td>
 
-                        <th>Expected</th>
-                        <th>Approved</th>
-                        <th>Outstanding</th>
-                        <th>%</th>
-                    </tr>
+                            <td class="fraction">
+                                {{ row.lessons_approved }}
+                                /
+                                {{ row.requirement.expected_lesson_plans }}
+                            </td>
 
-                </thead>
+                            <td>
+                                {{ row.expected }}
+                            </td>
 
-                <tbody>
+                            <td class="approved">
+                                {{ row.approved }}
+                            </td>
 
-                {% for row in report.rows %}
+                            <td class="outstanding">
+                                {{ row.outstanding }}
+                            </td>
 
-                    <tr>
-
-                        <td>
-                            {{ row.requirement.class_name }}
-                        </td>
-
-                        <td>
-                            {{ row.requirement.stream|default:"-" }}
-                        </td>
-
-                        <td>
-                            {{ row.requirement.subject }}
-                        </td>
-
-                        <td>
-                            {{ row.schemes_approved }}
-                            /
-                            {{ row.requirement.expected_schemes }}
-                        </td>
-
-                        <td>
-                            {{ row.records_approved }}
-                            /
-                            {{ row.requirement.expected_records }}
-                        </td>
-
-                        <td>
-                            {{ row.lessons_approved }}
-                            /
-                            {{ row.requirement.expected_lesson_plans }}
-                        </td>
-
-                        <td>
-                            {{ row.expected }}
-                        </td>
-
-                        <td>
-                            {{ row.approved }}
-                        </td>
-
-                        <td>
-                            {{ row.outstanding }}
-                        </td>
-
-                        <td>
-                            <strong>
+                            <td class="percentage">
                                 {{ row.percentage }}%
-                            </strong>
-                        </td>
+                            </td>
 
-                    </tr>
+                        </tr>
 
-                {% empty %}
+                    {% empty %}
 
-                    <tr>
-                        <td colspan="10"
-                            class="text-center">
+                        <tr>
 
-                            No submission requirements
-                            have been configured for this term.
+                            <td colspan="10"
+                                class="empty-message">
 
-                        </td>
-                    </tr>
+                                No submission requirements
+                                have been configured for this term.
 
-                {% endfor %}
+                            </td>
 
-                </tbody>
+                        </tr>
 
-            </table>
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         </div>
 
     </div>
 
-</div>
 
+    <!-- ADMIN FEEDBACK -->
+    {% if report.rows %}
 
-{% if report.rows %}
+        {% for row in report.rows %}
 
-{% for row in report.rows %}
+            {% if row.requirement.admin_feedback %}
 
-    {% if row.requirement.admin_feedback %}
+            <div class="feedback-card">
 
-    <div class="card mt-3">
+                <div class="feedback-body">
 
-        <div class="card-body">
+                    <div class="feedback-title">
 
-            <h5>
-                Admin Feedback —
-                {{ row.requirement.subject }}
-            </h5>
+                        Admin Feedback —
+                        {{ row.requirement.subject }}
 
-            <p>
-                {{ row.requirement.admin_feedback|linebreaks }}
-            </p>
+                    </div>
 
-            {% if row.requirement.feedback_updated_at %}
+                    <div class="feedback-text">
+                        {{ row.requirement.admin_feedback|linebreaks }}
+                    </div>
 
-            <small class="text-muted">
-                Updated:
-                {{ row.requirement.feedback_updated_at }}
-            </small>
+                    {% if row.requirement.feedback_updated_at %}
+
+                    <div class="feedback-date">
+
+                        Updated:
+                        {{ row.requirement.feedback_updated_at }}
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
 
             {% endif %}
 
-        </div>
-
-    </div>
+        {% endfor %}
 
     {% endif %}
 
-{% endfor %}
+    {% endif %}
 
-{% endif %}
-
-{% endif %}
+</div>
 
 {% endblock %}
-

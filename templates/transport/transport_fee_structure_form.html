@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<div style="max-width:760px;margin:25px auto;padding:20px"><h1>{{title}}</h1><form method="post">{% csrf_token %}{{form.as_p}}<button type="submit">Save</button> <a href="{% url 'transport:transport_fee_dashboard' %}">Cancel</a></form></div>{% endblock %}

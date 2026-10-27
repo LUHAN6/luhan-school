@@ -94,7 +94,10 @@ def _find_employee(user):
 def get_staff_teacher(user):
     """
     Resolve an authenticated ERP staff user to the
-    canonical TimetableTeacher.
+    canonical TimetableTeacher through the HR Employee record.
+
+    The Employee -> TimetableTeacher relationship is authoritative.
+    No username, email, name, or staff-number fallback is used.
     """
     if not user:
         return None
@@ -106,57 +109,17 @@ def get_staff_teacher(user):
 
     employee = _find_employee(user)
 
-    if employee:
-        teacher = TimetableTeacher.objects.filter(
-            employee=employee
-        ).first()
+    if not employee:
+        return None
 
-        if teacher:
-            return teacher
-
-        employee_number = getattr(
-            employee,
-            "employee_number",
-            None,
+    return (
+        TimetableTeacher.objects
+        .filter(
+            employee=employee,
+            active=True,
         )
-
-        if employee_number:
-            teacher = TimetableTeacher.objects.filter(
-                staff_number__iexact=employee_number
-            ).first()
-
-            if teacher:
-                return teacher
-
-    # Username/email/name fallbacks.
-    email = getattr(user, "email", "") or ""
-
-    if email:
-        teacher = TimetableTeacher.objects.filter(
-            email__iexact=email
-        ).first()
-
-        if teacher:
-            return teacher
-
-    full_name = " ".join(
-        x
-        for x in [
-            getattr(user, "first_name", ""),
-            getattr(user, "last_name", ""),
-        ]
-        if x
-    ).strip()
-
-    if full_name:
-        teacher = TimetableTeacher.objects.filter(
-            name__iexact=full_name
-        ).first()
-
-        if teacher:
-            return teacher
-
-    return None
+        .first()
+    )
 
 
 def is_class_teacher_for(

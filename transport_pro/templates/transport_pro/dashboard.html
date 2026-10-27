@@ -1,0 +1,22 @@
+{% extends "transport_pro/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="pagehead"><div><h1>Transport Operations</h1><div class="muted">Daily overview · {{ today|date:"l, d M Y" }}</div></div><div class="actions"><a class="btn primary" href="{% url 'transport_pro:learner_registration' %}">+ Register learner</a><a class="btn" href="{% url 'transport_pro:learner_bulk_import' %}">Import learners (Excel)</a><a class="btn" href="{% url 'transport_pro:learner_import_template' %}">Download import template</a><a class="btn" href="{% url 'transport_pro:create' 'trips' %}">+ Schedule trip</a><a class="btn" href="{% url 'transport_pro:create' 'vehicles' %}">+ Add vehicle</a></div></div>
+<div class="grid">
+<div class="card"><div class="metric">{{ vehicles_serviceable }} / {{ vehicles_total }}</div><div class="metric-label">Available vehicles</div></div>
+<div class="card"><div class="metric">{{ active_learners }}</div><div class="metric-label">Active learner assignments</div></div>
+<div class="card"><div class="metric">{{ active_routes }}</div><div class="metric-label">Active routes</div></div>
+<div class="card"><div class="metric">{{ open_incidents }}</div><div class="metric-label">Open incidents</div></div>
+<div class="card"><div class="metric">{{ open_maintenance }}</div><div class="metric-label">Open maintenance jobs</div></div>
+<div class="card"><div class="metric">{{ document_alerts }}</div><div class="metric-label">Vehicles with expired documents</div></div>
+</div>
+<div class="card"><h2>Today's trips</h2>
+<div class="tablewrap"><table><thead><tr><th>Route</th><th>Direction</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>Action</th></tr></thead><tbody>
+{% for trip in today_trips %}<tr><td>{{ trip.route }}</td><td>{{ trip.get_direction_display }}</td><td>{{ trip.vehicle.registration_number }}</td><td>{{ trip.driver.full_name }}</td><td><span class="badge">{{ trip.get_status_display }}</span></td><td><a href="{% url 'transport_pro:list' 'trips' %}">Open trips</a></td></tr>
+{% empty %}<tr><td colspan="6">No trips scheduled for today.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="grid">
+<div class="card"><h2>Outstanding transport charges</h2><div class="metric">KSh {{ outstanding|floatformat:2 }}</div><div class="metric-label">Sum of charge amounts marked due or partial. Reconcile against verified payments.</div></div>
+<div class="card"><h2>Today's boarding events</h2><div class="metric">{{ today_boarding }}</div><div class="metric-label">Boarding/drop-off events recorded today</div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "discipline/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ page_title }}</h1>
+        <div class="muted">{{ page_description }}</div>
+        <div class="muted">Portal: {{ portal_role_label }}</div>
+    </div>
+    {% if can_report_incident %}
+        <a class="btn" href="{% url 'discipline:case_create' %}">Report an incident</a>
+    {% endif %}
+</div>
+
+{% if portal_role == "admin" %}
+<div class="card">
+    <h2>Management overview</h2>
+    <p class="muted">Use the case and reporting tools available to your account to review incidents and monitor follow-up.</p>
+    <p>
+        <a class="btn secondary" href="{% url 'discipline:case_list' %}">Manage cases</a>
+        {% if is_manager %}
+        <a class="btn secondary" href="{% url 'discipline:reports' %}">Discipline reports</a>
+        {% endif %}
+    </p>
+</div>
+{% elif portal_role == "staff" %}
+<div class="card">
+    <h2>Staff quick actions</h2>
+    <p class="muted">Submit a factual incident report or follow up on cases reported by you or assigned to you, according to your access permissions.</p>
+    <p>
+        <a class="btn secondary" href="{% url 'discipline:my_cases' %}">My cases</a>
+        <a class="btn secondary" href="{% url 'discipline:case_list' %}">Available cases</a>
+    </p>
+</div>
+{% elif portal_role == "student" %}
+<div class="card">
+    <h2>My case follow-up</h2>
+    <p class="muted">Only records connected to your account, or otherwise explicitly authorised for you, appear here. If your account is not linked to your student record, ask the school administrator to link it.</p>
+    <p><a class="btn secondary" href="{% url 'discipline:my_cases' %}">View my cases</a></p>
+</div>
+{% elif portal_role == "parent" %}
+<div class="card">
+    <h2>My children's cases</h2>
+    <p class="muted">Case access is limited to your linked children and any other records you are explicitly authorised to view.</p>
+    <p><a class="btn secondary" href="{% url 'discipline:my_cases' %}">View linked cases</a></p>
+</div>
+{% endif %}
+
+<div class="grid">
+    <div class="card">
+        <div class="stat-label">{% if portal_role == "parent" %}Linked cases{% elif portal_role == "student" %}My visible cases{% else %}Visible cases{% endif %}</div>
+        <div class="stat">{{ stats.total }}</div>
+        <div class="muted">Records available to your account</div>
+    </div>
+    <div class="card">
+        <div class="stat-label">Open cases</div>
+        <div class="stat">{{ stats.open }}</div>
+        <div class="muted">Cases not yet closed</div>
+    </div>
+    <div class="card">
+        <div class="stat-label">Urgent cases</div>
+        <div class="stat">{{ stats.urgent }}</div>
+        <div class="muted">Open urgent cases visible to you</div>
+    </div>
+    <div class="card">
+        <div class="stat-label">Awaiting review</div>
+        <div class="stat">{{ stats.pending }}</div>
+        <div class="muted">Cases awaiting a review or decision</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="page-head">
+        <div>
+            <h2>{% if portal_role == "parent" %}Recent cases involving linked children{% elif portal_role == "student" %}My recent cases{% else %}Recently updated cases{% endif %}</h2>
+            <div class="muted">Only cases permitted for your account are shown.</div>
+        </div>
+        <a class="btn secondary" href="{% url 'discipline:my_cases' %}">
+            {% if portal_role == "parent" %}View linked cases{% elif portal_role == "student" %}View my cases{% else %}View my cases{% endif %}
+        </a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Reference</th>
+                {% if portal_role != "student" %}<th>Student</th>{% endif %}
+                <th>Category</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in cases %}
+            <tr>
+                <td>
+                    <strong>{{ c.case_number }}</strong>
+                    {% if c.urgent %}<div class="danger">Urgent</div>{% endif %}
+                </td>
+                {% if portal_role != "student" %}
+                <td>
+                    {{ c.student.get_full_name|default:c.student_name }}
+                    <div class="muted">{{ c.student_admission_no }}</div>
+                </td>
+                {% endif %}
+                <td>{{ c.category|default:"Not categorized" }}</td>
+                <td>{{ c.incident_date|date:"d M Y" }}</td>
+                <td><span class="badge">{{ c.get_status_display }}</span></td>
+                <td><a href="{% url 'discipline:case_detail' c.pk %}">Open</a></td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="{% if portal_role == 'student' %}5{% else %}6{% endif %}">
+                    No cases are currently available for this account.
+                    {% if portal_role == "student" %}
+                        If you expect to see your own cases, ask the school administrator to verify your student-account link.
+                    {% elif portal_role == "parent" %}
+                        Ask the school office to verify that your parent account is linked to your child.
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

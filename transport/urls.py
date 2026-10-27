@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 
 from . import views
 
@@ -7,6 +7,8 @@ app_name = "transport"
 
 
 urlpatterns = [
+    path("route-maps/<int:pk>/edit/", views.route_map_edit, name="route_map_edit"),
+    path("route-maps/", views.route_maps, name="route_maps"),
 
     # =====================================================
     # DASHBOARD
@@ -88,6 +90,42 @@ urlpatterns = [
         "routes/add/",
         views.route_add,
         name="route_add",
+    ),
+
+    path(
+        "routes/csv/template/",
+        views.route_csv_template,
+        name="route_csv_template",
+    ),
+    path(
+        "routes/excel/template/",
+        views.route_excel_template,
+        name="route_excel_template",
+    ),
+    path(
+        "routes/excel/import/",
+        views.route_excel_import,
+        name="route_excel_import",
+    ),
+    path(
+        "routes/csv/export/",
+        views.route_csv_export,
+        name="route_csv_export",
+    ),
+    path(
+        "routes/export/excel/",
+        views.route_excel_export,
+        name="route_excel_export",
+    ),
+    path(
+        "routes/export/excel/",
+        views.route_excel_export,
+        name="route_excel_export",
+    ),
+    path(
+        "routes/csv/import/",
+        views.route_csv_import,
+        name="route_csv_import",
     ),
 
     path(
@@ -269,4 +307,9 @@ urlpatterns = [
         views.fuel_delete,
         name="fuel_delete",
     ),
+    path("fees/", views.unified_transport_fee_dashboard, name="transport_fee_dashboard"),
+    path("fees/structures/add/", views.unified_transport_fee_add, name="transport_fee_structure_add"),
+    path("fees/structures/<int:pk>/edit/", views.unified_transport_fee_edit, name="transport_fee_structure_edit"),
+    path("fees/structures/<int:pk>/delete/", views.unified_transport_fee_delete, name="transport_fee_structure_delete"),
+    path("fees/generate/", views.transport_fee_generate, name="transport_fee_generate"),
 ]

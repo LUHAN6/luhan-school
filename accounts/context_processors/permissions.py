@@ -1,4 +1,5 @@
 ﻿from django.core.exceptions import ObjectDoesNotExist
+from timetable.models import TimetableTeacher
 
 
 def erp_permissions(request):
@@ -198,8 +199,8 @@ def portal_capabilities(request):
 
                 "portal_view_timetable":
                     has_permission(
-                        "view_timetableentry",
-                        "scheduling",
+                        "view_timetablelesson",
+                        "timetable",
                     ),
 
                 "portal_view_announcements":
@@ -236,11 +237,11 @@ def portal_capabilities(request):
             # Teaching staff receive academic navigation only when
             # they actually have an active Teacher record.
             try:
-                from timetable.legacy_compat import Teacher
+                
 
-                has_teacher = Teacher.objects.filter(
+                has_teacher = TimetableTeacher.objects.filter(
                     employee=getattr(profile, "employee", None),
-                    is_active=True,
+                    active=True,
                 ).exists()
 
             except Exception:
@@ -285,5 +286,7 @@ def portal_capabilities(request):
     return {
         "portal_capabilities": capabilities,
     }
+
+
 
 

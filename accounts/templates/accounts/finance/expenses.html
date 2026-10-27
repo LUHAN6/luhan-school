@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Finance Expenses</title><style>
+.finance-page{font-family:Arial,sans-serif;background:#f6f8fb;min-height:100vh;padding:24px;color:#172033}
+.finance-wrap{max-width:1250px;margin:auto}
+.finance-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px}
+.finance-head h1{font-size:24px;margin:0;font-weight:800}
+.finance-head p{margin:4px 0 0;color:#64748b;font-size:13px}
+.finance-nav{display:flex;gap:7px;flex-wrap:wrap}
+.finance-nav a{padding:8px 12px;border-radius:8px;background:#fff;border:1px solid #e2e8f0;text-decoration:none;color:#334155;font-size:12px;font-weight:700}
+.finance-nav a.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+.finance-filter{display:flex;gap:10px;align-items:end;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:13px;margin-bottom:16px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+.filter-field{display:flex;flex-direction:column;gap:5px;min-width:150px}
+.filter-field label{font-size:10px;text-transform:uppercase;font-weight:800;color:#64748b}
+.filter-field select,.filter-field input{height:36px;border:1px solid #dbe2ea;border-radius:7px;padding:0 10px;font-size:12px;background:#fff}
+.filter-actions{display:flex;gap:7px}
+.filter-actions button,.filter-actions a{height:36px;padding:0 13px;border-radius:7px;border:0;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;text-decoration:none;display:flex;align-items:center}
+.filter-actions a{background:#eef2f7;color:#475569}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:15px}
+.card small{display:block;color:#64748b;font-size:11px;font-weight:700}
+.card strong{display:block;font-size:22px;margin-top:5px}
+.income{color:#15803d}.expense{color:#dc2626}.net{color:#1d4ed8}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.panel-head{padding:12px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:800}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:9px 11px;border-bottom:1px solid #eef2f6;text-align:left;white-space:nowrap}
+th{font-size:10px;text-transform:uppercase;color:#64748b;background:#f8fafc}
+.empty{padding:25px;text-align:center;color:#94a3b8;font-size:12px}
+@media(max-width:750px){.finance-page{padding:12px}.finance-head{align-items:flex-start;flex-direction:column}.cards{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.filter-field{min-width:100%;}.filter-actions{width:100%}.filter-actions button,.filter-actions a{flex:1;justify-content:center}}
+:root{--fin-navy:#0f172a;--fin-blue:#2563eb;--fin-green:#15803d;--fin-red:#dc2626;--fin-text:#172033;--fin-muted:#64748b;--fin-line:#e2e8f0;--fin-bg:#f5f7fb}*{box-sizing:border-box}body{background:var(--fin-bg)!important;color:var(--fin-text)!important;font-family:Inter,Segoe UI,Arial,sans-serif!important;font-size:13px!important}.finance-head{background:linear-gradient(135deg,#0f172a,#1e3a8a)!important;color:#fff!important;border:0!important;border-radius:18px!important;padding:24px 26px!important;box-shadow:0 12px 30px rgba(15,23,42,.14)!important;display:flex!important;justify-content:space-between!important;align-items:flex-end!important;gap:20px!important}.finance-head h1{font-size:27px!important;font-weight:800!important;letter-spacing:-.5px!important;margin:0!important}.finance-head p{color:#cbd5e1!important;margin:6px 0 0!important}.finance-nav{display:flex!important;gap:7px!important;flex-wrap:wrap!important}.finance-nav a{padding:8px 13px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.16)!important;color:#dbeafe!important;text-decoration:none!important;font-weight:700!important}.finance-nav a:hover,.finance-nav a.active{background:#fff!important;color:#1d4ed8!important}.finance-filter{background:#fff!important;border:1px solid var(--fin-line)!important;border-radius:14px!important;padding:14px!important;margin:16px 0!important;box-shadow:0 5px 16px rgba(15,23,42,.05)!important}.finance-filter label{font-size:10px!important;text-transform:uppercase!important;letter-spacing:.06em!important;font-weight:800!important;color:var(--fin-muted)!important}.finance-filter select,.finance-filter input{height:38px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:var(--fin-text)!important}.finance-filter button{height:38px!important;border:0!important;border-radius:8px!important;background:var(--fin-blue)!important;color:#fff!important;font-weight:800!important;padding:0 16px!important}.finance-filter a{height:38px!important;border-radius:8px!important;background:#f1f5f9!important;color:#334155!important;text-decoration:none!important;padding:0 14px!important;display:inline-flex!important;align-items:center!important;font-weight:800!important}.card{border:1px solid var(--fin-line)!important;border-radius:14px!important;box-shadow:0 5px 16px rgba(15,23,42,.045)!important;padding:18px!important;background:#fff!important}.card small{color:var(--fin-muted)!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.06em!important}.card strong{font-size:22px!important;margin-top:7px!important;display:block!important}.panel{border:1px solid var(--fin-line)!important;border-radius:14px!important;box-shadow:0 5px 16px rgba(15,23,42,.045)!important;background:#fff!important;overflow:hidden!important}.panel-head{padding:14px 16px!important;border-bottom:1px solid var(--fin-line)!important;background:#fff!important;font-size:14px!important;font-weight:800!important;color:var(--fin-text)!important}.table-wrap{overflow:auto!important}table{width:100%!important;border-collapse:collapse!important}thead th{background:#f8fafc!important;color:var(--fin-muted)!important;font-size:10px!important;text-transform:uppercase!important;letter-spacing:.06em!important;font-weight:800!important;padding:11px 14px!important;border-bottom:1px solid var(--fin-line)!important}tbody td{padding:11px 14px!important;border-bottom:1px solid #edf2f7!important;font-size:12px!important;color:#334155!important;white-space:nowrap!important}tbody tr:hover{background:#f8fafc!important}.empty{text-align:center!important;color:#94a3b8!important;padding:30px!important}.income{color:var(--fin-green)!important}.expense{color:var(--fin-red)!important}.net{color:var(--fin-blue)!important}@media(max-width:700px){.finance-head{padding:18px!important;border-radius:13px!important;display:block!important}.finance-head h1{font-size:22px!important}.finance-nav{margin-top:14px!important}.finance-nav a{flex:1;text-align:center}.finance-filter{padding:11px!important}.card{padding:13px!important}.card strong{font-size:18px!important}.panel-head{padding:12px!important}}</style></head>
+<body>
+<div class="finance-page"><div class="finance-wrap">
+<div class="finance-head"><div><h1>Finance Expenses</h1><p>Expenses pulled from payroll, inventory and transport.</p></div><div class="finance-nav"><a href="/finance/">Overview</a><a href="/finance/income/">Income</a><a class="active" href="/finance/expenses/">Expenses</a></div></div>
+<form method="get" class="finance-filter">
+    <div class="filter-field">
+        <label>Month</label>
+        <select name="month">
+            <option value="">All Months</option>
+            <option value="1" {% if selected_month == 1 %}selected{% endif %}>January</option>
+            <option value="2" {% if selected_month == 2 %}selected{% endif %}>February</option>
+            <option value="3" {% if selected_month == 3 %}selected{% endif %}>March</option>
+            <option value="4" {% if selected_month == 4 %}selected{% endif %}>April</option>
+            <option value="5" {% if selected_month == 5 %}selected{% endif %}>May</option>
+            <option value="6" {% if selected_month == 6 %}selected{% endif %}>June</option>
+            <option value="7" {% if selected_month == 7 %}selected{% endif %}>July</option>
+            <option value="8" {% if selected_month == 8 %}selected{% endif %}>August</option>
+            <option value="9" {% if selected_month == 9 %}selected{% endif %}>September</option>
+            <option value="10" {% if selected_month == 10 %}selected{% endif %}>October</option>
+            <option value="11" {% if selected_month == 11 %}selected{% endif %}>November</option>
+            <option value="12" {% if selected_month == 12 %}selected{% endif %}>December</option>
+        </select>
+    </div>
+
+    <div class="filter-field">
+        <label>Term</label>
+        <select name="term">
+            <option value="">All Terms</option>
+            {% for term in terms %}
+                <option value="{{ term.id }}" {% if selected_term == term.id %}selected{% endif %}>
+                    {{ term.name }} - {{ term.academic_year.year }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="filter-field">
+        <label>Year</label>
+        <input type="number" name="year" value="{{ selected_year }}" placeholder="e.g. 2026" min="2000" max="2100">
+    </div>
+
+    <div class="filter-actions">
+        <button type="submit">Apply Filters</button>
+        <a href="{{ request.path }}">Clear</a>
+    </div>
+</form>
+
+<div class="cards">
+<div class="card"><small>Salaries</small><strong class="expense">KES {{ salaries|floatformat:2 }}</strong></div>
+<div class="card"><small>Inventory</small><strong class="expense">KES {{ inventory|floatformat:2 }}</strong></div>
+<div class="card"><small>Transport</small><strong class="expense">KES {{ transport|floatformat:2 }}</strong></div>
+</div>
+
+<div class="grid">
+<div class="panel"><div class="panel-head">Salaries / Payroll</div><div class="table-wrap"><table><thead><tr><th>Period</th><th>Employee</th><th>Gross Salary</th></tr></thead><tbody>
+{% for p in payroll %}<tr><td>{{ p.payroll_period.name }}</td><td>{{ p.employee }}</td><td>KES {{ p.gross_salary|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="3" class="empty">No salary expenses found.</td></tr>{% endfor %}
+</tbody></table></div></div>
+
+<div class="panel"><div class="panel-head">Transport / Fuel</div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Vehicle</th><th>Litres</th><th>Cost</th></tr></thead><tbody>
+{% for t in transport_records %}<tr><td>{{ t.date }}</td><td>{{ t.vehicle }}</td><td>{{ t.litres }}</td><td>KES {{ t.cost|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No transport expenses found.</td></tr>{% endfor %}
+</tbody></table></div></div>
+</div>
+
+<div class="panel" style="margin-top:14px"><div class="panel-head">Inventory Purchases</div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Purchase</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Unit Cost</th></tr></thead><tbody>
+{% for p in inventory %}<tr><td>{{ p.purchase.purchase_date }}</td><td>{{ p.purchase.number }}</td><td>{{ p.purchase.supplier }}</td><td>{{ p.item }}</td><td>{{ p.quantity }}</td><td>KES {{ p.unit_cost|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="6" class="empty">No inventory expenses found.</td></tr>{% endfor %}
+</tbody></table></div></div>
+</div></div>
+</body>
+</html>

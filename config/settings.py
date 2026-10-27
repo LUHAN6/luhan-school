@@ -85,6 +85,9 @@ INSTALLED_APPS = [
     "hr_payroll",
     "attendance",
     "transport",
+
+    'discipline',
+    "transport_pro.apps.TransportProConfig",
     "hostel",
     "inventory",
     "library",
@@ -391,3 +394,35 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
 
+
+
+
+# =========================================================
+# ELUHAN ERP EMAIL PROVIDER CONFIGURATION
+# Defaults are safe: Django console backend, no external email.
+# Configure real credentials only in the local .env file.
+# =========================================================
+
+DJANGO_EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+).strip()
+
+EMAIL_BACKEND = DJANGO_EMAIL_BACKEND
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com").strip()
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get(
+    "EMAIL_USE_TLS", "true"
+).strip().lower() in ("1", "true", "yes", "on")
+EMAIL_USE_SSL = os.environ.get(
+    "EMAIL_USE_SSL", "false"
+).strip().lower() in ("1", "true", "yes", "on")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER
+).strip()
+SERVER_EMAIL = os.environ.get(
+    "SERVER_EMAIL", DEFAULT_FROM_EMAIL
+).strip()
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "20"))

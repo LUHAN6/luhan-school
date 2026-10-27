@@ -5,9 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from students.models import Student
-from timetable.legacy_compat import (
-    TeacherClassAssignment,
-    TeacherTeachingAssignment,
+from timetable.advanced_models import (
+    TimetableTeacherClassAssignment,
+    TimetableTeacherTeachingAssignment,
 )
 
 from .models import (
@@ -22,7 +22,7 @@ from .models import (
 from .mark_permissions import (
     is_admin,
     can_enter_marks,
-    get_scheduling_teacher,
+    get_timetable_teacher,
     _same_class,
     _same_stream,
 )
@@ -64,12 +64,12 @@ def _allowed_class_streams_for_upload(user):
 
         return combinations
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return combinations
 
-    class_rows = TeacherClassAssignment.objects.filter(
+    class_rows = TimetableTeacherClassAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     ).values_list(
@@ -77,7 +77,7 @@ def _allowed_class_streams_for_upload(user):
         "stream",
     )
 
-    teaching_rows = TeacherTeachingAssignment.objects.filter(
+    teaching_rows = TimetableTeacherTeachingAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     ).values_list(
@@ -128,7 +128,7 @@ def _allowed_subject_ids_for_upload(
             .values_list("id", flat=True)
         )
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return set()
@@ -137,7 +137,7 @@ def _allowed_subject_ids_for_upload(
     # for this exact class/stream.
     is_class_teacher = False
 
-    for assignment in TeacherClassAssignment.objects.filter(
+    for assignment in TimetableTeacherClassAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     ):
@@ -158,11 +158,11 @@ def _allowed_subject_ids_for_upload(
             .values_list("id", flat=True)
         )
 
-    # Subject teacher: collect scheduling subject codes.
+    # Subject teacher: collect timetable subject codes.
     allowed_codes = set()
 
     assignments = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -1558,5 +1558,6 @@ def upload_class_marks_excel(request):
     )
 
     return redirect("academic:marks_entry")
+
 
 

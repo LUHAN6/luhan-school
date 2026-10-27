@@ -226,10 +226,777 @@
 }
 </style>
 
+<style id="luhan-neat-marks-entry">
+
+/* =========================================================
+   LUHAN — COMPACT MARKS ENTRY
+   ========================================================= */
+
+:root {
+    --luhan-blue: #2563eb;
+    --luhan-dark: #111827;
+    --luhan-muted: #64748b;
+    --luhan-border: #e2e8f0;
+    --luhan-bg: #f6f8fc;
+}
+
+body {
+    background: var(--luhan-bg) !important;
+    color: #1f2937;
+    font-size: 13px;
+}
+
+/* PAGE HEADER */
+
+.page-header {
+    background: linear-gradient(135deg, #111827, #1e293b) !important;
+    color: #fff;
+    border: 0 !important;
+    padding: 13px 0 !important;
+    margin-bottom: 15px !important;
+    box-shadow: 0 3px 14px rgba(15,23,42,.12);
+}
+
+.page-header h2 {
+    margin: 0 !important;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.page-header p {
+    color: #94a3b8 !important;
+    font-size: 11px;
+    margin-top: 2px !important;
+}
+
+.page-header .btn {
+    padding: 7px 11px;
+    font-size: 12px;
+    border-color: #64748b;
+    color: #e2e8f0;
+}
+
+/* CONTAINER */
+
+.container {
+    max-width: 1400px;
+}
+
+/* CARDS */
+
+.card,
+.selection-card,
+.loaded-header {
+    border-radius: 10px !important;
+}
+
+.card {
+    border-color: var(--luhan-border) !important;
+    box-shadow: 0 2px 9px rgba(15,23,42,.04) !important;
+}
+
+.card-body {
+    padding: 13px !important;
+}
+
+.card-header {
+    padding: 10px 13px !important;
+    font-size: 13px;
+    background: #f8fafc;
+}
+
+/* MODE SWITCH */
+
+.card.mb-4 .btn {
+    min-height: 42px;
+    padding: 8px 12px !important;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* SELECTION */
+
+.selection-card {
+    padding: 14px !important;
+    background: #fff;
+    border: 1px solid var(--luhan-border);
+    box-shadow: 0 2px 9px rgba(15,23,42,.04);
+}
+
+.selection-card h5 {
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 11px !important;
+}
+
+/* LABELS */
+
+.form-label {
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+}
+
+/* INPUTS */
+
+select.form-select,
+input.form-control {
+    min-height: 38px !important;
+    height: 38px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    border-color: #cbd5e1;
+    font-size: 12px;
+}
+
+select.form-select:focus,
+input.form-control:focus {
+    border-color: var(--luhan-blue);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+}
+
+/* BUTTONS */
+
+.btn {
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.selection-card .btn {
+    padding: 7px 12px;
+}
+
+/* LOADED HEADER */
+
+.loaded-header {
+    padding: 11px 13px !important;
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    font-size: 12px;
+}
+
+.loaded-header strong {
+    color: #1e3a8a;
+}
+
+.loaded-header .text-muted {
+    font-size: 11px;
+}
+
+/* TABLE */
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.marks-table {
+    margin: 0 !important;
+    font-size: 12px;
+    min-width: 760px;
+}
+
+.marks-table th {
+    background: #f1f5f9 !important;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    padding: 8px 9px !important;
+    border-color: #e2e8f0 !important;
+}
+
+.marks-table td {
+    padding: 6px 8px !important;
+    border-color: #e2e8f0 !important;
+    vertical-align: middle;
+}
+
+.marks-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.learner-name {
+    font-weight: 700;
+}
+
+/* MARK INPUTS */
+
+.mark-input {
+    width: 82px !important;
+    min-width: 82px !important;
+    height: 35px !important;
+    min-height: 35px !important;
+    padding: 4px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+}
+
+.subject-mark-input {
+    width: 72px !important;
+    min-width: 72px !important;
+    height: 34px !important;
+    padding: 3px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+}
+
+.comment-input {
+    min-width: 170px !important;
+    height: 35px !important;
+    min-height: 35px !important;
+    font-size: 11px !important;
+}
+
+/* SAVE BUTTON */
+
+.save-button {
+    position: sticky;
+    bottom: 10px;
+    z-index: 100;
+    padding: 8px;
+    background: rgba(246,248,252,.92);
+    backdrop-filter: blur(5px);
+    border-radius: 9px;
+}
+
+.save-button .btn {
+    min-height: 40px;
+    padding: 8px 15px;
+    font-size: 12px;
+}
+
+/* EMPTY */
+
+.empty-state {
+    padding: 25px 15px !important;
+    color: #64748b;
+}
+
+/* EXCEL SECTION */
+
+.luhan-excel-types-row {
+    gap: 9px !important;
+    margin-top: 12px !important;
+}
+
+.luhan-excel-type-card {
+    padding: 12px !important;
+    border-radius: 9px !important;
+}
+
+.luhan-excel-type-title {
+    font-size: 12px !important;
+    margin-bottom: 9px !important;
+}
+
+.luhan-excel-type-actions {
+    gap: 6px !important;
+}
+
+.luhan-excel-type-actions .btn {
+    padding: 6px 9px !important;
+    font-size: 11px;
+}
+
+/* ASSESSMENT CONTROL CENTRE */
+
+.luhan-amc {
+    margin: 18px 0 !important;
+}
+
+.luhan-amc-actionbar {
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+    padding: 8px !important;
+    border-radius: 9px !important;
+}
+
+.luhan-amc-actionbar a {
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+}
+
+.luhan-amc-card {
+    padding: 13px !important;
+    margin-bottom: 11px !important;
+    border-radius: 9px !important;
+}
+
+.luhan-amc-title {
+    font-size: 15px !important;
+    margin-bottom: 3px !important;
+}
+
+.luhan-amc-subtitle {
+    font-size: 11px !important;
+    margin-bottom: 11px !important;
+}
+
+.luhan-amc-control-grid {
+    gap: 8px !important;
+}
+
+.luhan-amc-control {
+    gap: 8px !important;
+    padding: 10px !important;
+    border-radius: 8px !important;
+}
+
+.luhan-amc-icon {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+    font-size: 15px !important;
+}
+
+.luhan-amc-control strong {
+    font-size: 12px;
+}
+
+.luhan-amc-control span {
+    font-size: 10px;
+}
+
+.luhan-amc-window {
+    padding: 12px !important;
+    margin-bottom: 9px !important;
+    border-radius: 9px !important;
+}
+
+.luhan-amc-name {
+    font-size: 14px !important;
+}
+
+.luhan-amc-meta {
+    font-size: 10px !important;
+}
+
+.luhan-amc-progress {
+    margin-top: 10px !important;
+}
+
+.luhan-amc-progress-track {
+    height: 7px !important;
+}
+
+.luhan-amc-countdown {
+    margin-top: 9px !important;
+    font-size: 15px !important;
+}
+
+.luhan-amc-actions {
+    gap: 5px !important;
+    margin-top: 10px !important;
+}
+
+.luhan-amc-btn {
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+}
+
+/* SUCCESS POPUP */
+
+.success-popup {
+    padding: 24px 20px !important;
+    border-radius: 14px !important;
+}
+
+.success-popup-icon {
+    width: 58px !important;
+    height: 58px !important;
+    font-size: 29px !important;
+    margin-bottom: 12px !important;
+}
+
+.success-popup-title {
+    font-size: 18px !important;
+}
+
+.success-popup-message {
+    font-size: 12px !important;
+}
+
+/* MOBILE */
+
+@media (max-width: 767.98px) {
+
+    body {
+        font-size: 12px;
+    }
+
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .page-header {
+        padding: 11px 0 !important;
+    }
+
+    .page-header h2 {
+        font-size: 17px;
+    }
+
+    .page-header .btn {
+        font-size: 0;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .page-header .btn i {
+        font-size: 15px;
+        margin: 0 !important;
+    }
+
+    .selection-card {
+        padding: 10px !important;
+    }
+
+    .card-body {
+        padding: 10px !important;
+    }
+
+    .marks-table {
+        min-width: 720px;
+    }
+
+    .luhan-excel-types-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .luhan-amc-control-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .luhan-amc-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .luhan-amc-actionbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .luhan-amc-actionbar a {
+        width: 100%;
+    }
+
+    .luhan-amc-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .luhan-amc-actions > a,
+    .luhan-amc-actions > button,
+    .luhan-amc-actions > form,
+    .luhan-amc-actions > form button {
+        width: 100%;
+    }
+
+    .save-button {
+        bottom: 5px;
+    }
+
+    .save-button .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+
+    .page-header h2 {
+        font-size: 16px;
+    }
+
+    .card.mb-4 .row {
+        gap: 6px !important;
+    }
+
+    .card.mb-4 .btn {
+        min-height: 38px;
+        font-size: 11px;
+    }
+
+    .loaded-header {
+        font-size: 11px;
+    }
+}
+
+</style>
+
+<style>
+/* ============================================================
+   COMPACT ASSESSMENT COUNTDOWN
+   ============================================================ */
+
+.luhan-assessment-alert {
+    margin: 0 0 12px 0 !important;
+    padding: 7px 12px !important;
+    border: 1px solid #f1aeb5;
+    border-left: 3px solid #dc3545;
+    border-radius: 7px;
+    background: #fff7f7;
+    color: #842029;
+    box-shadow: 0 2px 6px rgba(220,53,69,.06);
+    font-size: 12px;
+}
+
+.luhan-assessment-alert .assessment-countdown-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.luhan-assessment-alert #assessment-title {
+    font-size: 12px !important;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+.luhan-assessment-alert #assessment-details {
+    font-size: 11px !important;
+    margin: 1px 0 0 !important;
+    opacity: .8;
+}
+
+.luhan-assessment-alert #assessment-status {
+    display: inline-block;
+    font-size: 9px !important;
+    font-weight: 700;
+    padding: 2px 6px !important;
+    border-radius: 10px;
+    margin: 0 !important;
+}
+
+.luhan-assessment-alert #assessment-timer {
+    font-size: 16px !important;
+    line-height: 1 !important;
+    font-weight: 800;
+    letter-spacing: .5px;
+    white-space: nowrap;
+}
+
+.luhan-assessment-alert #assessment-deadline {
+    font-size: 10px !important;
+    margin: 0 !important;
+    opacity: .7;
+}
+
+@media (max-width: 600px) {
+    .luhan-assessment-alert {
+        padding: 7px 9px !important;
+    }
+
+    .luhan-assessment-alert .assessment-countdown-inner {
+        gap: 6px;
+    }
+
+    .luhan-assessment-alert #assessment-timer {
+        font-size: 14px !important;
+    }
+}
+</style>
 </head>
 
 
 <body>
+
+<!-- LUHAN ASSESSMENT COUNTDOWN -->
+
+<style id="luhan-assessment-alert-style">
+.luhan-assessment-alert {
+    border: 2px solid #dc3545 !important;
+    background: #fff5f5 !important;
+    color: #842029 !important;
+    box-shadow: 0 4px 14px rgba(220, 53, 69, 0.18);
+}
+
+.luhan-assessment-alert strong,
+.luhan-assessment-alert h5,
+.luhan-assessment-alert h6 {
+    color: #b02a37 !important;
+}
+
+.luhan-assessment-alert .text-muted {
+    color: #842029 !important;
+}
+
+.luhan-assessment-alert .badge {
+    background: #dc3545 !important;
+    color: #fff !important;
+}
+
+.luhan-assessment-alert .countdown,
+.luhan-assessment-alert #assessment-countdown,
+.luhan-assessment-alert [id*="countdown"] {
+    color: #dc3545 !important;
+    font-weight: 800;
+}
+</style>
+
+<div id="luhan-assessment-countdown" class="luhan-assessment-alert"
+     style="margin:20px 0;padding:20px;border-radius:16px;
+            background:linear-gradient(135deg,#0f3d91,#2563eb);
+            color:white;box-shadow:0 8px 25px rgba(0,0,0,.12);">
+
+    <div style="display:flex;justify-content:space-between;
+                align-items:center;gap:15px;flex-wrap:wrap;">
+
+        <div>
+            <div style="font-size:12px;text-transform:uppercase;
+                        letter-spacing:1px;opacity:.8;">
+                Assessment Mark Entry
+            </div>
+
+            <div id="assessment-title"
+                 style="font-size:21px;font-weight:700;margin-top:4px;">
+                Checking assessment window...
+            </div>
+
+            <div id="assessment-details"
+                 style="font-size:13px;margin-top:5px;opacity:.9;">
+            </div>
+        </div>
+
+        <div style="text-align:center;min-width:260px;">
+            <div id="assessment-status"
+                 style="font-size:12px;font-weight:700;
+                        letter-spacing:1px;margin-bottom:4px;">
+                LOADING
+            </div>
+
+            <div id="assessment-timer"
+                 style="font-size:30px;font-weight:800;
+                        letter-spacing:2px;">
+                --:--:--:--
+            </div>
+
+            <div id="assessment-deadline"
+                 style="font-size:12px;opacity:.8;">
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    const card = document.getElementById("luhan-assessment-countdown");
+
+    if (!card) return;
+
+    const title = document.getElementById("assessment-title");
+    const details = document.getElementById("assessment-details");
+    const status = document.getElementById("assessment-status");
+    const timer = document.getElementById("assessment-timer");
+    const deadline = document.getElementById("assessment-deadline");
+
+    let targetTime = null;
+    let currentStatus = null;
+
+    function pad(value) {
+        return String(value).padStart(2, "0");
+    }
+
+    function updateTimer() {
+        if (!targetTime) return;
+
+        let remaining = Math.max(
+            0,
+            Math.floor((targetTime - Date.now()) / 1000)
+        );
+
+        const days = Math.floor(remaining / 86400);
+        remaining %= 86400;
+
+        const hours = Math.floor(remaining / 3600);
+        remaining %= 3600;
+
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        timer.textContent =
+            days + "d " +
+            pad(hours) + ":" +
+            pad(minutes) + ":" +
+            pad(seconds);
+
+        if (remaining === 0 && currentStatus !== "REOPENED") {
+            status.textContent = "CLOSED";
+            title.textContent = "Assessment window closed";
+            details.textContent = "Mark recording deadline has been reached.";
+        }
+    }
+
+    function loadCountdown() {
+        fetch("{% url 'academic:assessment_countdown' %}", {
+            credentials: "same-origin"
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            if (!data.available) {
+                title.textContent = "No assessment currently open";
+                details.textContent = data.message || "";
+                status.textContent = "CLOSED";
+                timer.textContent = "00d 00:00:00";
+                deadline.textContent = "";
+                targetTime = null;
+                currentStatus = "CLOSED";
+                return;
+            }
+
+            currentStatus = data.status;
+            targetTime = new Date(data.deadline).getTime();
+
+            title.textContent =
+                data.assessment_type + " Mark Entry";
+
+            details.textContent =
+                data.academic_year +
+                " • " +
+                data.term;
+
+            status.textContent = data.status;
+
+            deadline.textContent =
+                "Deadline: " +
+                new Date(data.deadline).toLocaleString();
+
+            updateTimer();
+        })
+        .catch(() => {
+            title.textContent = "Assessment window unavailable";
+            details.textContent = "Unable to retrieve the current assessment window.";
+            status.textContent = "UNAVAILABLE";
+            timer.textContent = "--:--:--:--";
+        });
+    }
+
+    loadCountdown();
+
+    setInterval(updateTimer, 1000);
+
+    setInterval(loadCountdown, 60000);
+})();
+</script>
+<!-- END LUHAN ASSESSMENT COUNTDOWN -->
+
 
 
 <!-- ====================================================== -->
@@ -3213,6 +3980,9 @@ document.addEventListener(
 </body>
 
 </html>
+
+
+
 
 
 

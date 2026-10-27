@@ -6,10 +6,8 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from students.models import Student
-from timetable.legacy_compat import (
-    Subject,
-    TeacherTeachingAssignment,
-)
+from timetable.models import TimetableSubject
+from timetable.advanced_models import TimetableTeacherTeachingAssignment
 
 from .models import (
     WeeklyAssessmentReport,
@@ -56,7 +54,7 @@ def _teacher_classes(user):
         return []
 
     assignments = list(
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -208,7 +206,7 @@ def _teacher_can_class(
     except Exception:
         pass
 
-    return TeacherTeachingAssignment.objects.filter(
+    return TimetableTeacherTeachingAssignment.objects.filter(
         teacher=teacher,
         class_name__iexact=class_name,
         stream__iexact=stream,
@@ -233,19 +231,19 @@ def _teacher_subjects(
     """
 
     if not class_name:
-        return Subject.objects.none()
+        return TimetableSubject.objects.none()
 
     teacher = get_staff_teacher(user)
 
     if not teacher:
-        return Subject.objects.none()
+        return TimetableSubject.objects.none()
 
     class_name = class_name.strip()
     stream = stream.strip()
 
     # ---------------------------------------------------------
     # Class teacher: use actual assignments for the class.
-    # Never use Subject.objects.all().
+    # Never use TimetableSubject.objects.all().
     # ---------------------------------------------------------
     try:
         if is_class_teacher_for(
@@ -254,7 +252,7 @@ def _teacher_subjects(
             stream,
         ):
             subject_ids = (
-                TeacherTeachingAssignment.objects
+                TimetableTeacherTeachingAssignment.objects
                 .filter(
                     class_name__iexact=class_name,
                     stream__iexact=stream,
@@ -267,7 +265,7 @@ def _teacher_subjects(
                 .distinct()
             )
 
-            return Subject.objects.filter(
+            return TimetableSubject.objects.filter(
                 pk__in=subject_ids,
             ).order_by("name")
     except Exception:
@@ -277,7 +275,7 @@ def _teacher_subjects(
     # Ordinary teacher: only their assignments.
     # ---------------------------------------------------------
     subject_ids = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             class_name__iexact=class_name,
@@ -291,7 +289,7 @@ def _teacher_subjects(
         .distinct()
     )
 
-    return Subject.objects.filter(
+    return TimetableSubject.objects.filter(
         pk__in=subject_ids,
     ).order_by("name")
 
@@ -434,7 +432,7 @@ def staff_write(request):
         "weeks": weeks,
         "classes": classes,
         "students": [],
-        "subjects": Subject.objects.none(),
+        "subjects": TimetableSubject.objects.none(),
         "rows": [],
         "selected_class": "",
         "selected_stream": "",
@@ -1039,3 +1037,4 @@ def staff_write_class(request):
         f"&week={week_id}"
         f"&subject={subject_id}"
     )
+

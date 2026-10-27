@@ -61,10 +61,36 @@
                             NO
                         {% endif %}
                     </td>
-                    <td style="padding:12px;text-align:center;">
-                        <a href="{% url 'hr_payroll:deduction_type_edit' item.pk %}">
+                    <td style="padding:12px;text-align:center;white-space:nowrap;">
+                        <a
+                            href="{% url 'hr_payroll:deduction_type_edit' item.pk %}"
+                            style="margin-right:12px;"
+                        >
                             Edit
                         </a>
+
+                        <form
+                            method="post"
+                            action="{% url 'hr_payroll:deduction_type_delete' item.pk %}"
+                            style="display:inline;"
+                            onsubmit="return confirm('Delete this deduction rule? This action cannot be undone.');"
+                        >
+                            {% csrf_token %}
+                            <button
+                                type="submit"
+                                style="
+                                    border:0;
+                                    background:none;
+                                    padding:0;
+                                    color:#dc3545;
+                                    cursor:pointer;
+                                    text-decoration:underline;
+                                    font:inherit;
+                                "
+                            >
+                                Delete
+                            </button>
+                        </form>
                     </td>
                 </tr>
 
@@ -82,3 +108,4 @@
 </div>
 
 {% endblock %}
+

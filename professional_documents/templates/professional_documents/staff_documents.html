@@ -1,70 +1,284 @@
-
-{% extends "professional_documents/base.html" %}
+﻿{% extends "professional_documents/base.html" %}
 
 {% block professional_content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2>Professional Documents</h2>
-        <p class="text-muted mb-0">
-            Schemes of Work, Records of Work and Lesson Plans
-        </p>
+<style>
+    .pd-page {
+        --pd-primary: #2563eb;
+        --pd-dark: #0f172a;
+        --pd-muted: #64748b;
+        --pd-border: #e2e8f0;
+        --pd-bg: #f8fafc;
+    }
+
+    .pd-header {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        color: #fff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, .10);
+    }
+
+    .pd-header h2 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .pd-header p {
+        color: rgba(255,255,255,.72);
+        font-size: .82rem;
+        margin: 4px 0 0;
+    }
+
+    .pd-new-btn {
+        white-space: nowrap;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 8px 13px;
+        font-size: .82rem;
+    }
+
+    .pd-card {
+        background: #fff;
+        border: 1px solid var(--pd-border);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .pd-filter {
+        padding: 14px;
+    }
+
+    .pd-filter .form-label {
+        font-size: .74rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 5px;
+    }
+
+    .pd-filter .form-select {
+        min-height: 38px;
+        border-color: var(--pd-border);
+        font-size: .82rem;
+        border-radius: 7px;
+    }
+
+    .pd-filter .btn {
+        min-height: 38px;
+        font-size: .82rem;
+        font-weight: 600;
+        border-radius: 7px;
+    }
+
+    .pd-table-card {
+        overflow: hidden;
+    }
+
+    .pd-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pd-table {
+        margin: 0;
+        min-width: 850px;
+        font-size: .79rem;
+    }
+
+    .pd-table thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: .70rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .025em;
+        white-space: nowrap;
+        padding: 10px 9px;
+        border-bottom: 1px solid var(--pd-border);
+        border-top: 0;
+    }
+
+    .pd-table tbody td {
+        padding: 10px 9px;
+        vertical-align: middle;
+        border-color: #edf2f7;
+        color: #334155;
+    }
+
+    .pd-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .pd-type {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .pd-muted {
+        color: var(--pd-muted);
+    }
+
+    .pd-date {
+        white-space: nowrap;
+        line-height: 1.35;
+    }
+
+    .pd-status {
+        font-size: .68rem;
+        font-weight: 700;
+        padding: 5px 8px;
+        border-radius: 999px;
+    }
+
+    .pd-actions {
+        white-space: nowrap;
+    }
+
+    .pd-actions .btn {
+        font-size: .70rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        margin-right: 3px;
+    }
+
+    .pd-empty {
+        padding: 35px 15px !important;
+        color: #64748b;
+        font-size: .82rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .pd-header {
+            padding: 15px;
+            border-radius: 11px;
+        }
+
+        .pd-header h2 {
+            font-size: 1.15rem;
+        }
+
+        .pd-header p {
+            font-size: .76rem;
+        }
+
+        .pd-header-inner {
+            gap: 12px;
+        }
+
+        .pd-new-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .pd-filter {
+            padding: 12px;
+        }
+
+        .pd-filter .filter-item {
+            margin-bottom: 9px;
+        }
+
+        .pd-card {
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .pd-table {
+            min-width: 780px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .pd-header h2 {
+            font-size: 1.05rem;
+        }
+
+        .pd-header p {
+            font-size: .72rem;
+        }
+
+        .pd-table {
+            min-width: 740px;
+        }
+    }
+</style>
+
+<div class="pd-page">
+
+    <!-- HEADER -->
+    <div class="pd-header">
+        <div class="pd-header-inner d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h2>Professional Documents</h2>
+                <p>
+                    Schemes of Work, Records of Work and Lesson Plans
+                </p>
+            </div>
+
+            <a href="{% url 'professional_documents:create' %}"
+               class="btn btn-primary pd-new-btn">
+                + New Document
+            </a>
+        </div>
     </div>
 
-    <a href="{% url 'professional_documents:create' %}"
-       class="btn btn-primary">
-        + New Professional Document
-    </a>
-</div>
+    <!-- FILTERS -->
+    <div class="pd-card pd-filter">
+        <form method="get">
 
-<div class="card mb-4">
-    <div class="card-body">
+            <div class="row g-2 align-items-end">
 
-        <form method="get" class="row g-3">
+                <div class="col-12 col-md-5 filter-item">
+                    <label class="form-label">Document Type</label>
 
-            <div class="col-md-5">
-                <label class="form-label">Document Type</label>
-                <select name="type" class="form-select">
-                    <option value="">All</option>
-                    {% for value,label in document_types %}
-                    <option value="{{ value }}"
-                        {% if request.GET.type == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+                    <select name="type" class="form-select">
+                        <option value="">All Document Types</option>
 
-            <div class="col-md-5">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select">
-                    <option value="">All</option>
-                    {% for value,label in statuses %}
-                    <option value="{{ value }}"
-                        {% if request.GET.status == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+                        {% for value,label in document_types %}
+                        <option value="{{ value }}"
+                            {% if request.GET.type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-primary w-100">
-                    Filter
-                </button>
+                <div class="col-12 col-md-5 filter-item">
+                    <label class="form-label">Status</label>
+
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+
+                        {% for value,label in statuses %}
+                        <option value="{{ value }}"
+                            {% if request.GET.status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Filter
+                    </button>
+                </div>
+
             </div>
 
         </form>
-
     </div>
-</div>
 
-<div class="card">
-    <div class="card-body">
+    <!-- DOCUMENTS -->
+    <div class="pd-card pd-table-card">
 
-        <div class="table-responsive">
+        <div class="pd-table-wrap">
 
-            <table class="table table-bordered align-middle">
+            <table class="table pd-table">
 
                 <thead>
                     <tr>
@@ -85,7 +299,7 @@
 
                     <tr>
 
-                        <td>
+                        <td class="pd-type">
                             {{ document.get_document_type_display }}
                         </td>
 
@@ -100,7 +314,7 @@
                         <td>
                             {{ document.class_name }}
                             {% if document.stream %}
-                                / {{ document.stream }}
+                                <span class="pd-muted">/ {{ document.stream }}</span>
                             {% endif %}
                         </td>
 
@@ -108,52 +322,67 @@
                             {{ document.subject.name }}
                         </td>
 
-                        <td>
+                        <td class="pd-date">
                             {% if document.lesson_date %}
                                 {{ document.lesson_date }}
+
                                 {% if document.start_time %}
-                                    <br>{{ document.start_time }}
+                                    <br>
+                                    {{ document.start_time }}
                                 {% endif %}
+
                                 {% if document.end_time %}
                                     - {{ document.end_time }}
                                 {% endif %}
                             {% else %}
-                                —
+                                <span class="pd-muted">—</span>
                             {% endif %}
                         </td>
 
                         <td>
                             {% if document.status == "APPROVED" %}
-                                <span class="badge bg-success">
+
+                                <span class="badge bg-success pd-status">
                                     Approved
                                 </span>
+
                             {% elif document.status == "FLAGGED" %}
-                                <span class="badge bg-danger">
+
+                                <span class="badge bg-danger pd-status">
                                     Flagged
                                 </span>
+
                             {% elif document.status == "SUBMITTED" %}
-                                <span class="badge bg-warning text-dark">
+
+                                <span class="badge bg-warning text-dark pd-status">
                                     Submitted
                                 </span>
+
                             {% else %}
-                                <span class="badge bg-secondary">
+
+                                <span class="badge bg-secondary pd-status">
                                     Draft
                                 </span>
+
                             {% endif %}
                         </td>
 
-                        <td>
+                        <td class="pd-actions">
+
                             <a href="{% url 'professional_documents:detail' document.pk %}"
                                class="btn btn-sm btn-primary">
                                 View
                             </a>
 
                             {% if document.is_editable_by_teacher %}
+
                             <a href="{% url 'professional_documents:edit' document.pk %}"
                                class="btn btn-sm btn-secondary">
                                 Edit
                             </a>
+
                             {% endif %}
+
                         </td>
 
                     </tr>
@@ -161,7 +390,7 @@
                 {% empty %}
 
                     <tr>
-                        <td colspan="8" class="text-center">
+                        <td colspan="8" class="text-center pd-empty">
                             No professional documents found.
                         </td>
                     </tr>
@@ -175,6 +404,7 @@
         </div>
 
     </div>
+
 </div>
 
 {% endblock %}

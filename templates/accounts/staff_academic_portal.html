@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -22,55 +22,415 @@
 
     <style>
 
-        body {
-            background: #f5f7fb;
-            min-height: 100vh;
+        :root {
+            --primary: #0d6efd;
+            --dark: #172033;
+            --bg: #f5f7fb;
+            --border: #e5e9f0;
+            --muted: #6c757d;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background: var(--bg);
+            color: #212529;
+            min-height: 100vh;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+        }
+
+        /* =========================
+           HEADER
+        ========================== */
 
         .portal-header {
-            background: #212529;
-            color: white;
-            padding: 22px 0;
+            background: linear-gradient(135deg, #172033, #243b63);
+            color: #fff;
+            padding: 16px 0;
         }
 
-        .portal-card {
-            border: 0;
-            border-radius: 16px;
-            background: white;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            transition: 0.2s ease;
-            height: 100%;
-        }
-
-        .portal-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-        }
-
-        .class-icon {
-            width: 58px;
-            height: 58px;
-            border-radius: 14px;
-            background: #e9f2ff;
-            color: #0d6efd;
+        .portal-header-inner {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 27px;
+            justify-content: space-between;
+            gap: 12px;
         }
 
-        .class-title {
-            font-size: 20px;
+        .portal-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,.6);
+            margin-bottom: 2px;
+        }
+
+        .portal-title {
+            margin: 0;
+            font-size: 21px;
             font-weight: 700;
         }
 
+        .portal-title i {
+            color: #8bbcff;
+        }
+
         .back-link {
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 10px;
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 7px;
+            color: #fff;
             text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         .back-link:hover {
-            color: #dee2e6;
+            background: rgba(255,255,255,.1);
+            color: #fff;
+        }
+
+        /* =========================
+           MAIN
+        ========================== */
+
+        .portal-main {
+            padding-top: 22px;
+            padding-bottom: 8px;
+        }
+
+        .section-heading {
+            margin-bottom: 11px;
+        }
+
+        .section-heading h4 {
+            margin: 0 0 2px;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .section-heading p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* =========================
+           CLASS CARDS
+        ========================== */
+
+        .class-card {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: #212529;
+            text-decoration: none;
+            box-shadow: 0 2px 6px rgba(20,35,60,.035);
+            transition: .18s ease;
+        }
+
+        .class-card:hover {
+            transform: translateY(-1px);
+            border-color: #cbdcf8;
+            box-shadow: 0 5px 15px rgba(20,35,60,.08);
+            color: #212529;
+        }
+
+        .class-icon {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border-radius: 9px;
+            background: #edf5ff;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+        }
+
+        .class-title {
+            font-size: 15px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .role-badge {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 4px 6px;
+            border-radius: 5px;
+        }
+
+        .class-meta {
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .class-arrow {
+            color: #9aa5b5;
+            font-size: 13px;
+        }
+
+        /* =========================
+           QUICK ACCESS
+        ========================== */
+
+        .quick-access {
+            margin-top: 25px;
+        }
+
+        .access-card {
+            height: 100%;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            box-shadow: 0 2px 6px rgba(20,35,60,.035);
+        }
+
+        .access-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            margin-bottom: 9px;
+        }
+
+        .access-icon.blue {
+            background: #edf5ff;
+            color: #0d6efd;
+        }
+
+        .access-icon.green {
+            background: #edf9f1;
+            color: #198754;
+        }
+
+        .access-icon.purple {
+            background: #f3efff;
+            color: #6f42c1;
+        }
+
+        .access-card h5 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .access-card p {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .access-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 6px;
+            padding: 6px 9px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* =========================
+           EMPTY STATE
+        ========================== */
+
+        .empty-state {
+            background: #fff;
+            border: 1px dashed #ced5df;
+            border-radius: 10px;
+            padding: 25px 15px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .empty-state i {
+            display: block;
+            font-size: 25px;
+            margin-bottom: 7px;
+        }
+
+        /* =========================
+           FOOTER
+        ========================== */
+
+        .portal-footer {
+            text-align: center;
+            color: #8993a3;
+            font-size: 10px;
+            padding: 20px 0 22px;
+        }
+
+        /* =========================
+           MOBILE
+        ========================== */
+
+        @media (max-width: 575.98px) {
+
+            .portal-header {
+                padding: 13px 0;
+            }
+
+            .portal-header-inner {
+                align-items: center;
+            }
+
+            .portal-title {
+                font-size: 18px;
+            }
+
+            .portal-label {
+                font-size: 8px;
+            }
+
+            .back-link {
+                padding: 6px 8px;
+                font-size: 10px;
+            }
+
+            .portal-main {
+                padding-top: 17px;
+            }
+
+            .section-heading {
+                margin-bottom: 8px;
+            }
+
+            .section-heading h4 {
+                font-size: 16px;
+            }
+
+            .section-heading p {
+                font-size: 11px;
+            }
+
+            .row.g-3 {
+                --bs-gutter-x: .5rem;
+                --bs-gutter-y: .5rem;
+            }
+
+            .class-card {
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .class-icon {
+                width: 36px;
+                height: 36px;
+                flex-basis: 36px;
+                font-size: 16px;
+            }
+
+            .class-title {
+                font-size: 13px;
+            }
+
+            .role-badge {
+                font-size: 8px;
+                padding: 3px 5px;
+            }
+
+            .class-meta {
+                margin-top: 6px;
+                font-size: 9px;
+            }
+
+            .quick-access {
+                margin-top: 20px;
+            }
+
+            .access-card {
+                padding: 11px;
+                border-radius: 8px;
+            }
+
+            .access-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 15px;
+                margin-bottom: 7px;
+            }
+
+            .access-card h5 {
+                font-size: 13px;
+            }
+
+            .access-card p {
+                font-size: 10px;
+                margin-bottom: 8px;
+            }
+
+            .access-btn {
+                font-size: 10px;
+                padding: 5px 7px;
+            }
+
+        }
+
+        /* =========================
+           VERY SMALL PHONES
+        ========================== */
+
+        @media (max-width: 380px) {
+
+            .portal-header-inner {
+                gap: 7px;
+            }
+
+            .portal-title {
+                font-size: 16px;
+            }
+
+            .back-link {
+                font-size: 9px;
+                padding: 5px 6px;
+            }
+
+            .class-title {
+                font-size: 12px;
+            }
+
+            .class-icon {
+                width: 32px;
+                height: 32px;
+                flex-basis: 32px;
+            }
+
+            .access-card h5 {
+                font-size: 12px;
+            }
+
         }
 
     </style>
@@ -79,90 +439,101 @@
 
 <body>
 
-    <div class="portal-header">
 
-        <div class="container">
+<header class="portal-header">
 
-            <div class="d-flex justify-content-between align-items-center">
+    <div class="container">
 
-                <div>
-                    <div class="small text-white-50">
-                        STAFF PORTAL
-                    </div>
+        <div class="portal-header-inner">
 
-                    <h3 class="mb-0">
-                        <i class="bi bi-mortarboard me-2"></i>
-                        Academic Portal
-                    </h3>
+            <div>
+
+                <div class="portal-label">
+                    STAFF PORTAL
                 </div>
 
-                <a
-                    href="{% url 'accounts:staff_dashboard' %}"
-                    class="back-link"
-                >
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Back to Staff Portal
-                </a>
+                <h1 class="portal-title">
+                    <i class="bi bi-mortarboard-fill me-1"></i>
+                    Academic Portal
+                </h1>
 
             </div>
+
+            <a
+                href="{% url 'accounts:staff_dashboard' %}"
+                class="back-link"
+            >
+                <i class="bi bi-arrow-left"></i>
+                Back
+            </a>
 
         </div>
 
     </div>
 
+</header>
 
-    <main class="container py-5">
 
-        <div class="mb-4">
+<main class="container portal-main">
 
-            <h4 class="fw-bold mb-1">
-                Select Class
+
+    <!-- YOUR CLASSES -->
+
+    <section>
+
+        <div class="section-heading">
+
+            <h4>
+                Your Classes
             </h4>
 
-            <p class="text-muted mb-0">
+            <p>
                 Select a class and stream to continue.
             </p>
 
         </div>
 
 
-        <div class="row g-4">
+        <div class="row g-3">
 
             {% for class_item in academic_portal_classes %}
 
-            <div class="col-md-6 col-lg-4">
+            <div class="col-12 col-sm-6 col-lg-4">
 
                 <a
                     href="{% url 'accounts:staff_academic_class' %}?class_name={{ class_item.class_name|urlencode }}&stream={{ class_item.stream|urlencode }}"
-                    class="text-decoration-none text-dark"
+                    class="class-card"
                 >
 
-                    <div class="portal-card p-4">
+                    <div class="d-flex align-items-center gap-2">
 
-                        <div class="d-flex align-items-center gap-3">
+                        <div class="class-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
 
-                            <div class="class-icon">
-                                <i class="bi bi-people-fill"></i>
+                        <div class="flex-grow-1">
+
+                            <div class="class-title">
+
+                                {{ class_item.class_name }}
+
+                                {% if class_item.stream %}
+                                    — {{ class_item.stream }}
+                                {% endif %}
+
                             </div>
 
-                            <div>
-
-                                <div class="class-title">
-                                    {{ class_item.class_name }}
-                                    {% if class_item.stream %}
-                                        — {{ class_item.stream }}
-                                    {% endif %}
-                                </div>
+                            <div class="mt-1">
 
                                 {% if class_item.is_class_teacher %}
 
-                                <span class="badge bg-success mt-1">
+                                <span class="badge bg-success role-badge">
                                     Class Teacher
                                 </span>
 
                                 {% else %}
 
-                                <span class="badge bg-secondary mt-1">
+                                <span class="badge bg-secondary role-badge">
                                     Subject Teacher
                                 </span>
 
@@ -172,10 +543,14 @@
 
                         </div>
 
-                        <div class="text-muted small mt-4">
-                            Click to open class
-                            <i class="bi bi-arrow-right ms-1"></i>
-                        </div>
+                        <i class="bi bi-chevron-right class-arrow"></i>
+
+                    </div>
+
+                    <div class="class-meta">
+
+                        Open class
+                        <i class="bi bi-arrow-right ms-1"></i>
 
                     </div>
 
@@ -187,8 +562,12 @@
 
             <div class="col-12">
 
-                <div class="alert alert-info">
+                <div class="empty-state">
+
+                    <i class="bi bi-people"></i>
+
                     No academic classes have been assigned to you.
+
                 </div>
 
             </div>
@@ -197,74 +576,135 @@
 
         </div>
 
-    </main>
+    </section>
 
 
+    <!-- QUICK ACCESS -->
 
-    <!-- PROFESSIONAL DOCUMENTS -->
-    <div class="row g-4 mt-3">
+    <section class="quick-access">
 
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h4>📚 Professional Documents</h4>
-                    <p class="text-muted">
+        <div class="section-heading">
+
+            <h4>
+                Quick Access
+            </h4>
+
+            <p>
+                Documents, submissions and assessment reports.
+            </p>
+
+        </div>
+
+
+        <div class="row g-3">
+
+
+            <div class="col-12 col-sm-6 col-lg-4">
+
+                <div class="access-card">
+
+                    <div class="access-icon blue">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+
+                    <h5>
+                        Professional Documents
+                    </h5>
+
+                    <p>
                         Schemes of Work, Records of Work and Lesson Plans.
                     </p>
-                    <a href="{% url 'professional_documents:staff_documents' %}"
-                       class="btn btn-primary">
-                        Professional Documents
-                    </a>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h4>📊 Termly Submission Report</h4>
-                    <p class="text-muted">
-                        View your required documents, approved submissions,
-                        outstanding work, submission percentage and
-                        administrator feedback.
+                    <a
+                        href="{% url 'professional_documents:staff_documents' %}"
+                        class="btn btn-primary access-btn"
+                    >
+                        Open Documents
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-12 col-sm-6 col-lg-4">
+
+                <div class="access-card">
+
+                    <div class="access-icon green">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+
+                    <h5>
+                        Termly Submission Report
+                    </h5>
+
+                    <p>
+                        Required documents, submissions and administrator feedback.
                     </p>
-                    <a href="{% url 'termly_submission:staff_report' %}"
-                       class="btn btn-success">
-                        View Termly Submission
+
+                    <a
+                        href="{% url 'termly_submission:staff_report' %}"
+                        class="btn btn-success access-btn"
+                    >
+                        View Submission
+                        <i class="bi bi-arrow-right"></i>
                     </a>
+
                 </div>
+
             </div>
+
+
+            <div class="col-12 col-sm-6 col-lg-4">
+
+                <div class="access-card">
+
+                    <div class="access-icon purple">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+
+                    <h5>
+                        Weekly Assessment Reports
+                    </h5>
+
+                    <p>
+                        View and manage weekly student assessment reports.
+                    </p>
+
+                    <a
+                        href="{% url 'weekly_reports:dashboard' %}"
+                        class="btn btn-primary access-btn"
+                    >
+                        Open Reports
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+
+                </div>
+
+            </div>
+
+
         </div>
 
-    </div>
-
-    <footer class="text-center text-muted small py-4">
-
-        {{ branding.school_name|default:"Luhan School" }}
-
-        · {{ today|date:"Y" }}
-
-    </footer>
+    </section>
 
 
-<a href="{% url 'weekly_reports:dashboard' %}"
-   class="btn btn-primary">
-    Weekly Assessment Reports
-</a>
+</main>
+
+
+<footer class="portal-footer">
+
+    {{ branding.school_name|default:"Luhan School" }}
+
+    <span class="mx-1">·</span>
+
+    {{ today|date:"Y" }}
+
+</footer>
+
 
 </body>
 
 </html>
-
-<div class="card shadow-sm h-100">
-    <div class="card-body">
-        <h4>📚 Professional Documents</h4>
-        <p class="text-muted">
-            Schemes of Work, Records of Work and Lesson Plans.
-        </p>
-        <a href="{% url 'professional_documents:staff_documents' %}"
-           class="btn btn-primary">
-            Professional Documents
-        </a>
-    </div>
-</div>

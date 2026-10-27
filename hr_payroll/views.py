@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 from django.db.models import Q
 from decimal import Decimal
 import calendar
@@ -37,6 +37,7 @@ from .models import (
     NSSFRule,
     EmployeeDeduction,
     StaffLoan,
+    LoanApplication,
     PayrollPeriod,
     PayrollRecord,
     Payslip,
@@ -1387,6 +1388,125 @@ def allowance_deactivate(request, pk):
 
 @login_required
 @role_permission_required("view_deductiontype", "hr_payroll")
+def get_current_personal_relief_amount():
+    """
+    Return the currently active/effective monthly Personal Relief.
+    """
+    today = timezone.localdate()
+
+    relief = (
+        PAYERelief.objects
+        .filter(
+            name="Personal Relief",
+            is_active=True,
+        )
+        .order_by("-effective_from", "-id")
+        .first()
+    )
+
+    if not relief:
+        return Decimal("0.00")
+
+    if relief.effective_from and today < relief.effective_from:
+        return Decimal("0.00")
+
+    if relief.effective_to and today > relief.effective_to:
+        return Decimal("0.00")
+
+    return (
+        relief.monthly_amount or
+        Decimal("0.00")
+    ).quantize(Decimal("0.01"))
+
+@login_required
+@role_permission_required("change_deductiontype", "hr_payroll")
+def statutory_deduction_toggle(request, category, pk):
+
+    if request.method != "POST":
+        return redirect("hr_payroll:statutory_deductions")
+
+    if category == "deduction":
+        obj = get_object_or_404(
+            DeductionType,
+            pk=pk,
+        )
+
+    elif category == "paye":
+        obj = get_object_or_404(
+            PAYETaxBand,
+            pk=pk,
+        )
+
+    elif category == "relief":
+        obj = get_object_or_404(
+            PAYERelief,
+            pk=pk,
+        )
+
+    elif category == "nssf":
+        obj = get_object_or_404(
+            NSSFRule,
+            pk=pk,
+        )
+
+    else:
+        messages.error(
+            request,
+            "Invalid statutory deduction category.",
+        )
+        return redirect(
+            "hr_payroll:statutory_deductions"
+        )
+
+    obj.is_active = not obj.is_active
+    obj.save(update_fields=["is_active"])
+
+    state = "enabled" if obj.is_active else "disabled"
+
+    messages.success(
+        request,
+        f'"{getattr(obj, "name", "Statutory rule")}" {state}. '
+        "The change will apply to future payroll calculations.",
+    )
+
+    return redirect(
+        "hr_payroll:statutory_deductions"
+    )
+
+def statutory_deductions(request):
+
+    deduction_types = (
+        DeductionType.objects
+        .filter(is_statutory=True)
+        .order_by("name")
+    )
+
+    paye_bands = (
+        PAYETaxBand.objects
+        .order_by("lower_limit")
+    )
+
+    paye_reliefs = (
+        PAYERelief.objects
+        .order_by("name")
+    )
+
+    nssf_rules = (
+        NSSFRule.objects
+        .order_by("lower_limit")
+    )
+
+    return render(
+        request,
+        "hr_payroll/statutory_deductions.html",
+        {
+            "deduction_types": deduction_types,
+            "paye_bands": paye_bands,
+            "paye_reliefs": paye_reliefs,
+            "nssf_rules": nssf_rules,
+        },
+    )
+
 def deduction_type_list(request):
 
     deduction_types = DeductionType.objects.order_by(
@@ -1413,6 +1533,34 @@ def deduction_type_add(request):
 
 @login_required
 @role_permission_required("change_deductiontype", "hr_payroll")
+
+@login_required
+@role_permission_required("delete_deductiontype", "hr_payroll")
+def deduction_type_delete(request, pk):
+    obj = get_object_or_404(
+        DeductionType,
+        pk=pk,
+    )
+
+    if request.method == "POST":
+        name = obj.name
+
+        try:
+            obj.delete()
+            messages.success(
+                request,
+                f'Deduction rule "{name}" deleted successfully.',
+            )
+        except Exception:
+            messages.error(
+                request,
+                f'Cannot delete "{name}" because it is currently being used.',
+            )
+
+        return redirect("hr_payroll:deduction_type_list")
+
+    return redirect("hr_payroll:deduction_type_list")
+
 def deduction_type_edit(request, pk):
 
     obj = get_object_or_404(
@@ -1767,11 +1915,24 @@ def loan_repayment(request, pk):
 @login_required
 @role_permission_required("view_payrollperiod", "hr_payroll")
 def payroll_list(request):
+    selected_month = request.GET.get("month", "")
+    selected_year = request.GET.get("year", "")
 
-    payroll_periods = PayrollPeriod.objects.order_by(
-        "-year",
-        "-month",
-    )
+    payroll_periods = PayrollPeriod.objects.all()
+
+    if selected_month:
+        try:
+            payroll_periods = payroll_periods.filter(month=int(selected_month))
+        except (ValueError, TypeError):
+            selected_month = ""
+
+    if selected_year:
+        try:
+            payroll_periods = payroll_periods.filter(year=int(selected_year))
+        except (ValueError, TypeError):
+            selected_year = ""
+
+    payroll_periods = payroll_periods.order_by("-year", "-month")
 
     selected_period = None
     payroll_records = PayrollRecord.objects.none()
@@ -1780,10 +1941,7 @@ def payroll_list(request):
 
     if period_id:
         try:
-            selected_period = PayrollPeriod.objects.get(
-                pk=int(period_id)
-            )
-
+            selected_period = PayrollPeriod.objects.get(pk=int(period_id))
             payroll_records = PayrollRecord.objects.select_related(
                 "employee",
                 "payroll_period",
@@ -1794,7 +1952,6 @@ def payroll_list(request):
                 "employee__middle_name",
                 "employee__last_name",
             )
-
         except (PayrollPeriod.DoesNotExist, ValueError, TypeError):
             selected_period = None
             payroll_records = PayrollRecord.objects.none()
@@ -1806,12 +1963,39 @@ def payroll_list(request):
             "payroll_periods": payroll_periods,
             "selected_period": selected_period,
             "payroll_records": payroll_records,
+            "selected_month": selected_month,
+            "selected_year": selected_year,
         },
     )
 
-
 @login_required
 @role_permission_required("add_payrollperiod", "hr_payroll")
+
+@login_required
+@role_permission_required("delete_payrollperiod", "hr_payroll")
+def payroll_period_delete(request, pk):
+    period = get_object_or_404(PayrollPeriod, pk=pk)
+
+    if request.method != "POST":
+        return redirect("hr_payroll:payroll_list")
+
+    if period.status in {"APPROVED", "PAID", "CLOSED"}:
+        messages.error(
+            request,
+            f"{period.name} cannot be deleted because it is {period.get_status_display()}."
+        )
+        return redirect("hr_payroll:payroll_list")
+
+    period_name = period.name
+    try:
+        PayrollRecord.objects.filter(payroll_period=period).delete()
+        period.delete()
+        messages.success(request, f"{period_name} deleted successfully.")
+    except Exception as exc:
+        messages.error(request, f"Could not delete {period_name}: {exc}")
+
+    return redirect("hr_payroll:payroll_list")
+
 def payroll_period_add(request):
     """
     Create a monthly payroll period using Month and Year only.
@@ -3410,6 +3594,20 @@ def staff_loan_list(request):
         Decimal("0.00"),
     )
 
+    applications = (
+        LoanApplication.objects
+        .filter(employee=employee)
+        .order_by("-created_at", "-id")
+    )
+
+    pending_applications_count = applications.filter(
+        status__in=[
+            "SUBMITTED",
+            "UNDER_REVIEW",
+            "APPROVED",
+        ]
+    ).count()
+
     return render(
         request,
         "hr_payroll/staff_loans.html",
@@ -3420,6 +3618,8 @@ def staff_loan_list(request):
             "outstanding_balance": outstanding_balance,
             "total_principal": total_principal,
             "total_paid": total_paid,
+            "applications": applications,
+            "pending_applications_count": pending_applications_count,
         },
     )
 
@@ -3968,7 +4168,7 @@ def staff_payslip_view(request, pk):
             "record": record,
             "employee": employee,
             "period": record.payroll_period,
-            "personal_relief": 2400,
+            "personal_relief": get_current_personal_relief_amount(),
             "loan_remaining_balance": loan_remaining_balance,
             "branding": _get_active_school_branding(),
         },
@@ -4011,7 +4211,7 @@ def staff_payslip_print(request, pk):
             "record": record,
             "employee": employee,
             "period": record.payroll_period,
-            "personal_relief": 2400,
+            "personal_relief": get_current_personal_relief_amount(),
             "loan_remaining_balance": loan_remaining_balance,
         },
     )
@@ -5214,9 +5414,658 @@ def hr_reports(request):
     )
 
 
+# ============================================================
+# STAFF LOAN APPLICATION WORKFLOW
+# ============================================================
+
+class StaffLoanApplicationForm(forms.ModelForm):
+
+    class Meta:
+        model = LoanApplication
+        fields = [
+            "loan_name",
+            "requested_amount",
+            "requested_installment",
+            "repayment_months",
+            "purpose",
+            "supporting_document",
+        ]
+        widgets = {
+            "loan_name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Emergency Loan, Development Loan",
+            }),
+            "requested_amount": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": "1",
+                "step": "0.01",
+                "placeholder": "0.00",
+            }),
+            "requested_installment": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": "0.01",
+                "step": "0.01",
+                "placeholder": "Preferred monthly deduction",
+            }),
+            "repayment_months": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": "1",
+                "max": "120",
+                "placeholder": "Number of months",
+            }),
+            "purpose": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 4,
+                "placeholder": "Explain why you are requesting the loan...",
+            }),
+            "supporting_document": forms.ClearableFileInput(attrs={
+                "class": "form-control",
+            }),
+        }
+
+    def clean_requested_amount(self):
+        amount = self.cleaned_data["requested_amount"]
+
+        if amount <= Decimal("0.00"):
+            raise forms.ValidationError(
+                "Loan amount must be greater than zero."
+            )
+
+        return amount
+
+    def clean_requested_installment(self):
+        installment = self.cleaned_data.get("requested_installment")
+
+        if installment is not None and installment <= Decimal("0.00"):
+            raise forms.ValidationError(
+                "Monthly installment must be greater than zero."
+            )
+
+        return installment
+
+    def clean_repayment_months(self):
+        months = self.cleaned_data.get("repayment_months")
+
+        if months is not None and months < 1:
+            raise forms.ValidationError(
+                "Repayment period must be at least one month."
+            )
+
+        return months
 
 
+class LoanApplicationApprovalForm(forms.Form):
 
+    approved_amount = forms.DecimalField(
+        min_value=Decimal("0.01"),
+        max_digits=12,
+        decimal_places=2,
+        label="Approved Amount",
+    )
+
+    approved_installment = forms.DecimalField(
+        min_value=Decimal("0.01"),
+        max_digits=12,
+        decimal_places=2,
+        label="Monthly Installment",
+    )
+
+    repayment_months = forms.IntegerField(
+        min_value=1,
+        max_value=120,
+        label="Repayment Period (Months)",
+    )
+
+    admin_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            "rows": 4,
+            "placeholder": "Approval notes...",
+        }),
+    )
+
+
+class LoanApplicationRejectForm(forms.Form):
+
+    admin_notes = forms.CharField(
+        required=True,
+        widget=forms.Textarea(attrs={
+            "rows": 4,
+            "placeholder": "Reason for rejecting this application...",
+        }),
+        label="Reason",
+    )
+
+
+def _staff_loan_access_allowed(request):
+    support_staff = (
+        getattr(
+            getattr(request.user, "profile", None),
+            "role",
+            None,
+        ) == "STAFF"
+        and get_staff_teacher(request.user) is None
+    )
+
+    return (
+        support_staff
+        or user_has_role_permission(
+            request.user,
+            "view_staffloan",
+        )
+    )
+
+
+def _add_months_to_date(value, months):
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+
+    day = min(
+        value.day,
+        calendar.monthrange(year, month)[1],
+    )
+
+    return date(year, month, day)
+
+
+@login_required
+def staff_loan_apply(request):
+
+    if not _staff_loan_access_allowed(request):
+        messages.error(
+            request,
+            "You do not have permission to access Loans.",
+        )
+        return redirect("accounts:staff_dashboard")
+
+    employee = _get_logged_in_staff_employee(request)
+
+    if employee is None:
+        messages.error(
+            request,
+            "Your staff account is not linked to an employee record.",
+        )
+        return redirect("accounts:staff_dashboard")
+
+    active_count = StaffLoan.objects.filter(
+        employee=employee,
+        status="ACTIVE",
+    ).count()
+
+    pending_count = LoanApplication.objects.filter(
+        employee=employee,
+        status__in=[
+            "SUBMITTED",
+            "UNDER_REVIEW",
+            "APPROVED",
+        ],
+    ).count()
+
+    if request.method == "POST":
+
+        if active_count > 0:
+            messages.error(
+                request,
+                "You currently have an active loan. Please clear it before applying for another loan.",
+            )
+            return redirect("hr_payroll:staff_loan_list")
+
+        form = StaffLoanApplicationForm(
+            request.POST,
+            request.FILES,
+        )
+
+        declaration = request.POST.get("declaration") == "on"
+
+        if not declaration:
+            form.add_error(
+                None,
+                "You must accept the declaration before submitting your application.",
+            )
+
+        if pending_count > 0:
+            form.add_error(
+                None,
+                "You already have a loan application under review.",
+            )
+
+        if form.is_valid():
+
+            application = form.save(commit=False)
+            application.employee = employee
+            application.status = "SUBMITTED"
+            application.submitted_at = timezone.now()
+            application.save()
+
+            messages.success(
+                request,
+                f"Loan application {application.application_number} submitted successfully.",
+            )
+
+            return redirect(
+                "hr_payroll:staff_loan_application_detail",
+                pk=application.pk,
+            )
+
+    else:
+        form = StaffLoanApplicationForm()
+
+    return render(
+        request,
+        "hr_payroll/staff_loan_apply.html",
+        {
+            "employee": employee,
+            "form": form,
+            "active_count": active_count,
+            "pending_count": pending_count,
+        },
+    )
+
+
+@login_required
+def staff_loan_application_detail(request, pk):
+
+    if not _staff_loan_access_allowed(request):
+        messages.error(
+            request,
+            "You do not have permission to access Loans.",
+        )
+        return redirect("accounts:staff_dashboard")
+
+    employee = _get_logged_in_staff_employee(request)
+
+    if employee is None:
+        messages.error(
+            request,
+            "Your staff account is not linked to an employee record.",
+        )
+        return redirect("accounts:staff_dashboard")
+
+    application = get_object_or_404(
+        LoanApplication.objects.select_related(
+            "employee",
+            "reviewed_by",
+            "staff_loan",
+        ),
+        pk=pk,
+        employee=employee,
+    )
+
+    return render(
+        request,
+        "hr_payroll/staff_loan_application_detail.html",
+        {
+            "employee": employee,
+            "application": application,
+        },
+    )
+
+
+@login_required
+@role_permission_required("view_staffloan", "hr_payroll")
+def loan_applications(request):
+
+    applications = (
+        LoanApplication.objects
+        .select_related(
+            "employee",
+            "reviewed_by",
+            "staff_loan",
+        )
+        .order_by("-created_at")
+    )
+
+    status = request.GET.get("status", "").strip()
+
+    if status:
+        applications = applications.filter(status=status)
+
+    search = request.GET.get("q", "").strip()
+
+    if search:
+        applications = applications.filter(
+            Q(application_number__icontains=search)
+            | Q(employee__first_name__icontains=search)
+            | Q(employee__last_name__icontains=search)
+            | Q(loan_name__icontains=search)
+        )
+
+    counts = {
+        "submitted": LoanApplication.objects.filter(
+            status="SUBMITTED"
+        ).count(),
+        "review": LoanApplication.objects.filter(
+            status="UNDER_REVIEW"
+        ).count(),
+        "approved": LoanApplication.objects.filter(
+            status="APPROVED"
+        ).count(),
+        "rejected": LoanApplication.objects.filter(
+            status="REJECTED"
+        ).count(),
+        "disbursed": LoanApplication.objects.filter(
+            status="DISBURSED"
+        ).count(),
+    }
+
+    return render(
+        request,
+        "hr_payroll/loan_applications.html",
+        {
+            "applications": applications,
+            "counts": counts,
+            "selected_status": status,
+            "search": search,
+        },
+    )
+
+
+@login_required
+@role_permission_required("view_staffloan", "hr_payroll")
+def loan_application_detail(request, pk):
+
+    application = get_object_or_404(
+        LoanApplication.objects.select_related(
+            "employee",
+            "reviewed_by",
+            "staff_loan",
+        ),
+        pk=pk,
+    )
+
+    approval_form = LoanApplicationApprovalForm(
+        initial={
+            "approved_amount": (
+                application.approved_amount
+                or application.requested_amount
+            ),
+            "approved_installment": (
+                application.approved_installment
+                or application.requested_installment
+                or Decimal("0.00")
+            ),
+            "repayment_months": (
+                application.repayment_months
+                or 12
+            ),
+            "admin_notes": application.admin_notes or "",
+        }
+    )
+
+    reject_form = LoanApplicationRejectForm(
+        initial={
+            "admin_notes": application.admin_notes or "",
+        }
+    )
+
+    return render(
+        request,
+        "hr_payroll/loan_application_detail.html",
+        {
+            "application": application,
+            "approval_form": approval_form,
+            "reject_form": reject_form,
+        },
+    )
+
+
+@login_required
+@role_permission_required("change_staffloan", "hr_payroll")
+def loan_application_approve(request, pk):
+
+    if request.method != "POST":
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    application = get_object_or_404(
+        LoanApplication,
+        pk=pk,
+    )
+
+    if application.status not in (
+        "SUBMITTED",
+        "UNDER_REVIEW",
+    ):
+        messages.error(
+            request,
+            "This application cannot be approved in its current status.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    form = LoanApplicationApprovalForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            "Please correct the approval details.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    approved_amount = form.cleaned_data["approved_amount"]
+    approved_installment = form.cleaned_data[
+        "approved_installment"
+    ]
+    repayment_months = form.cleaned_data["repayment_months"]
+
+    if approved_amount > application.requested_amount:
+        messages.error(
+            request,
+            "Approved amount cannot exceed the requested amount.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    application.approved_amount = approved_amount
+    application.approved_installment = approved_installment
+    application.repayment_months = repayment_months
+    application.admin_notes = form.cleaned_data["admin_notes"]
+    application.status = "APPROVED"
+    application.reviewed_by = request.user
+    application.reviewed_at = timezone.now()
+    application.approved_at = timezone.now()
+    application.save()
+
+    messages.success(
+        request,
+        f"{application.application_number} approved. It is now ready for disbursement.",
+    )
+
+    return redirect(
+        "hr_payroll:loan_application_detail",
+        pk=pk,
+    )
+
+
+@login_required
+@role_permission_required("change_staffloan", "hr_payroll")
+def loan_application_reject(request, pk):
+
+    if request.method != "POST":
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    application = get_object_or_404(
+        LoanApplication,
+        pk=pk,
+    )
+
+    if application.status not in (
+        "SUBMITTED",
+        "UNDER_REVIEW",
+    ):
+        messages.error(
+            request,
+            "This application cannot be rejected in its current status.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    form = LoanApplicationRejectForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            "A rejection reason is required.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    application.status = "REJECTED"
+    application.admin_notes = form.cleaned_data["admin_notes"]
+    application.reviewed_by = request.user
+    application.reviewed_at = timezone.now()
+    application.rejected_at = timezone.now()
+    application.save()
+
+    messages.success(
+        request,
+        f"{application.application_number} rejected.",
+    )
+
+    return redirect(
+        "hr_payroll:loan_application_detail",
+        pk=pk,
+    )
+
+
+@login_required
+@role_permission_required("change_staffloan", "hr_payroll")
+def loan_application_disburse(request, pk):
+
+    if request.method != "POST":
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    application = get_object_or_404(
+        LoanApplication.objects.select_related(
+            "employee",
+            "staff_loan",
+        ),
+        pk=pk,
+    )
+
+    if application.status != "APPROVED":
+        messages.error(
+            request,
+            "Only approved applications can be disbursed.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    if application.staff_loan_id:
+        messages.error(
+            request,
+            "This application is already linked to a staff loan.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    existing_active = StaffLoan.objects.filter(
+        employee=application.employee,
+        status="ACTIVE",
+    ).exists()
+
+    if existing_active:
+        messages.error(
+            request,
+            "This employee already has an active loan.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    approved_amount = (
+        application.approved_amount
+        or application.requested_amount
+    )
+
+    approved_installment = (
+        application.approved_installment
+        or application.requested_installment
+    )
+
+    if not approved_installment:
+        messages.error(
+            request,
+            "An approved monthly installment is required before disbursement.",
+        )
+        return redirect(
+            "hr_payroll:loan_application_detail",
+            pk=pk,
+        )
+
+    start_date = timezone.localdate()
+
+    end_date = None
+
+    if application.repayment_months:
+        end_date = _add_months_to_date(
+            start_date,
+            application.repayment_months,
+        )
+
+    with transaction.atomic():
+
+        loan = StaffLoan.objects.create(
+            employee=application.employee,
+            loan_name=application.loan_name,
+            principal_amount=approved_amount,
+            monthly_installment=approved_installment,
+            amount_paid=Decimal("0.00"),
+            start_date=start_date,
+            end_date=end_date,
+            status="ACTIVE",
+            notes=(
+                f"Disbursed from loan application "
+                f"{application.application_number}."
+            ),
+        )
+
+        application.staff_loan = loan
+        application.status = "DISBURSED"
+        application.disbursed_at = timezone.now()
+        application.save(
+            update_fields=[
+                "staff_loan",
+                "status",
+                "disbursed_at",
+                "updated_at",
+            ]
+        )
+
+    messages.success(
+        request,
+        f"{application.application_number} disbursed and added to payroll loans.",
+    )
+
+    return redirect(
+        "hr_payroll:loan_application_detail",
+        pk=pk,
+    )
 
 
 

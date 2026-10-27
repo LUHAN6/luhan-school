@@ -1,0 +1,241 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.loan-form-page {
+    max-width:900px;
+    margin:0 auto;
+    padding:18px;
+}
+
+.loan-form-head {
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:white;
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+}
+
+.loan-form-head h1 {
+    margin:0;
+    font-size:20px;
+    font-weight:800;
+}
+
+.loan-form-head p {
+    margin:4px 0 0;
+    font-size:12px;
+    opacity:.75;
+}
+
+.loan-form-card {
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:18px;
+}
+
+.loan-form-card label {
+    display:block;
+    font-size:11px;
+    font-weight:800;
+    color:#334155;
+    margin-bottom:5px;
+}
+
+.loan-form-card input,
+.loan-form-card select,
+.loan-form-card textarea {
+    width:100%;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:12px;
+    background:#fff;
+}
+
+.loan-form-card textarea {
+    min-height:110px;
+    resize:vertical;
+}
+
+.loan-form-card input:focus,
+.loan-form-card select:focus,
+.loan-form-card textarea:focus {
+    outline:none;
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.08);
+}
+
+.loan-help {
+    font-size:10px;
+    color:#64748b;
+    margin-top:4px;
+}
+
+.loan-errors {
+    background:#fff1f2;
+    border:1px solid #fecdd3;
+    color:#9f1239;
+    border-radius:8px;
+    padding:10px;
+    font-size:11px;
+    margin-bottom:12px;
+}
+
+.loan-declaration {
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:9px;
+    padding:12px;
+    margin-top:14px;
+}
+
+.loan-declaration label {
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    font-size:11px;
+    font-weight:600;
+}
+
+.loan-declaration input {
+    width:auto;
+    margin-top:2px;
+}
+
+.loan-actions {
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin-top:16px;
+    flex-wrap:wrap;
+}
+
+.loan-actions a,
+.loan-actions button {
+    border:0;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:11px;
+    font-weight:800;
+    text-decoration:none;
+}
+
+.loan-back {
+    background:#f1f5f9;
+    color:#334155;
+}
+
+.loan-submit {
+    background:#1d4ed8;
+    color:white;
+}
+
+@media(max-width:600px) {
+    .loan-form-page {
+        padding:10px;
+    }
+
+    .loan-form-card {
+        padding:13px;
+    }
+}
+</style>
+
+<div class="loan-form-page">
+
+    <div class="loan-form-head">
+
+        <h1>
+            <i class="bi bi-file-earmark-plus me-1"></i>
+            Apply for a Loan
+        </h1>
+
+        <p>
+            Complete the application below. Your application will be reviewed by the administration.
+        </p>
+
+    </div>
+
+    <div class="loan-form-card">
+
+        {% if form.non_field_errors %}
+
+            <div class="loan-errors">
+                {{ form.non_field_errors }}
+            </div>
+
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+
+            {% csrf_token %}
+
+            {% for field in form %}
+
+                <div class="mb-3">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% if field.help_text %}
+                        <div class="loan-help">
+                            {{ field.help_text }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="loan-help text-danger">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <div class="loan-declaration">
+
+                <label>
+
+                    <input type="checkbox"
+                           name="loan_declaration"
+                           value="1"
+                           required>
+
+                    <span>
+                        I confirm that the information provided in this application is accurate and
+                        I authorize the school to process the application and, where approved,
+                        recover the agreed repayment amount through payroll deductions.
+                    </span>
+
+                </label>
+
+            </div>
+
+            <div class="loan-actions">
+
+                <a href="{% url 'hr_payroll:staff_loan_list' %}"
+                   class="loan-back">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to My Loans
+                </a>
+
+                <button type="submit"
+                        class="loan-submit">
+                    <i class="bi bi-send me-1"></i>
+                    Submit Application
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

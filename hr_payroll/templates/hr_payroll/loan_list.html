@@ -3,242 +3,213 @@
 {% block content %}
 
 <style>
-    .page-wrap {
-        max-width: 1250px;
-        margin: 0 auto;
-        padding: 25px;
+.loan-page {
+    max-width:1400px;
+}
+.loan-page-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:18px;
+}
+.loan-page-head h1 {
+    margin:0;
+    font-size:24px;
+    font-weight:800;
+}
+.loan-page-head p {
+    margin:4px 0 0;
+    color:#667085;
+    font-size:13px;
+}
+.loan-actions {
+    display:flex;
+    gap:8px;
+}
+.loan-btn {
+    display:inline-block;
+    padding:9px 13px;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:12px;
+    font-weight:700;
+}
+.loan-btn-primary {
+    background:#0d6efd;
+    color:#fff;
+}
+.loan-btn-light {
+    background:#eef2f6;
+    color:#344054;
+}
+.loan-card {
+    background:#fff;
+    border:1px solid #e4e7ec;
+    border-radius:10px;
+    margin-bottom:16px;
+    overflow:hidden;
+}
+.loan-card-head {
+    padding:12px 14px;
+    border-bottom:1px solid #eaecf0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.loan-card-head h2 {
+    margin:0;
+    font-size:14px;
+    font-weight:800;
+}
+.loan-table-wrap {
+    overflow-x:auto;
+}
+.loan-table {
+    width:100%;
+    min-width:900px;
+    border-collapse:collapse;
+}
+.loan-table th {
+    background:#f8fafc;
+    color:#667085;
+    font-size:10px;
+    text-transform:uppercase;
+    padding:10px;
+    white-space:nowrap;
+}
+.loan-table td {
+    padding:10px;
+    border-top:1px solid #f0f2f5;
+    font-size:12px;
+    white-space:nowrap;
+}
+.loan-table a {
+    color:#0d6efd;
+    font-weight:700;
+    text-decoration:none;
+}
+.badge-loan {
+    display:inline-block;
+    padding:4px 7px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:800;
+}
+.active {
+    background:#d1e7dd;
+    color:#0f5132;
+}
+.completed {
+    background:#cff4fc;
+    color:#055160;
+}
+.cancelled {
+    background:#e2e3e5;
+    color:#41464b;
+}
+.empty {
+    padding:25px;
+    text-align:center;
+    color:#667085;
+    font-size:12px;
+}
+@media(max-width:700px) {
+    .loan-page-head {
+        align-items:flex-start;
+        flex-direction:column;
     }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 15px;
-        flex-wrap: wrap;
-        margin-bottom: 22px;
+    .loan-actions {
+        width:100%;
+        flex-direction:column;
     }
-
-    .page-header h1 {
-        margin: 0;
+    .loan-btn {
+        text-align:center;
     }
-
-    .actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .btn {
-        display: inline-block;
-        padding: 9px 14px;
-        border-radius: 8px;
-        text-decoration: none;
-        border: 0;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 13px;
-    }
-
-    .btn-primary {
-        background: #1769e0;
-        color: #fff;
-    }
-
-    .btn-success {
-        background: #198754;
-        color: #fff;
-    }
-
-    .btn-warning {
-        background: #f0ad00;
-        color: #111;
-    }
-
-    .btn-danger {
-        background: #dc3545;
-        color: #fff;
-    }
-
-    .btn-secondary {
-        background: #6c757d;
-        color: #fff;
-    }
-
-    .btn-info {
-        background: #0d6efd;
-        color: #fff;
-    }
-
-    .table-wrap {
-        overflow-x: auto;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 3px 16px rgba(0,0,0,.08);
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 850px;
-    }
-
-    th, td {
-        padding: 12px 14px;
-        border-bottom: 1px solid #e8e8e8;
-        text-align: left;
-        vertical-align: middle;
-    }
-
-    th {
-        background: #f5f7fa;
-        font-weight: 700;
-    }
-
-    tr:hover td {
-        background: #fafafa;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 5px 9px;
-        border-radius: 999px;
-        background: #eef2f7;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .inline-form {
-        display: inline;
-        margin: 0;
-    }
-
-    .empty {
-        text-align: center;
-        padding: 40px;
-        color: #777;
-    }
-
-    .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 15px;
-        margin-bottom: 25px;
-    }
-
-    .stat-card {
-        background: #fff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 3px 16px rgba(0,0,0,.07);
-    }
-
-    .stat-card .label {
-        color: #666;
-        font-size: 13px;
-        margin-bottom: 8px;
-    }
-
-    .stat-card .value {
-        font-size: 28px;
-        font-weight: 800;
-    }
+}
 </style>
 
-<div class="page-wrap">
+<div class="loan-page">
 
-    <div class="page-header">
+    <div class="loan-page-head">
+        <div>
+            <h1>Staff Loans</h1>
+            <p>Manage applications, disbursements and existing payroll loans.</p>
+        </div>
 
-        <h1>Staff Loans</h1>
+        <div class="loan-actions">
+            <a
+                class="loan-btn loan-btn-light"
+                href="{% url 'hr_payroll:loan_applications' %}"
+            >
+                Loan Applications
+            </a>
 
-        <a class="btn btn-primary"
-           href="{% url 'hr_payroll:loan_add' %}">
-            + Add Staff Loan
-        </a>
-
+            <a
+                class="loan-btn loan-btn-primary"
+                href="{% url 'hr_payroll:loan_add' %}"
+            >
+                + Add Staff Loan
+            </a>
+        </div>
     </div>
 
-    <div class="table-wrap">
+    <div class="loan-card">
 
-        <table>
+        <div class="loan-card-head">
+            <h2>Active / Existing Loans</h2>
+        </div>
 
-            <thead>
-                <tr>
-                    <th>Employee</th>
-                    <th>Loan</th>
-                    <th>Principal</th>
-                    <th>Installment</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+        {% if loans %}
+        <div class="loan-table-wrap">
+            <table class="loan-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Loan</th>
+                        <th>Principal</th>
+                        <th>Installment</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Start</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
 
-            <tbody>
-
-            {% for loan in loans %}
-
-                <tr>
-
-                    <td>{{ loan.employee.full_name }}</td>
-
-                    <td>{{ loan.loan_name }}</td>
-
-                    <td>{{ loan.principal_amount|floatformat:2 }}</td>
-
-                    <td>{{ loan.monthly_installment|floatformat:2 }}</td>
-
-                    <td>{{ loan.amount_paid|floatformat:2 }}</td>
-
-                    <td>
-                        <strong>
-                            {{ loan.balance|floatformat:2 }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <span class="badge">
-                            {{ loan.get_status_display }}
-                        </span>
-                    </td>
-
-                    <td>
-
-                        <div class="actions">
-
-                            <a class="btn btn-warning"
-                               href="{% url 'hr_payroll:loan_edit' loan.pk %}">
-                                Edit
-                            </a>
-
-                            {% if loan.status == "ACTIVE" and loan.balance > 0 %}
-
-                            <a class="btn btn-success"
-                               href="{% url 'hr_payroll:loan_repayment' loan.pk %}">
-                                Repayment
-                            </a>
-
+                <tbody>
+                {% for loan in loans %}
+                    <tr>
+                        <td>{{ loan.employee.full_name }}</td>
+                        <td>{{ loan.loan_name }}</td>
+                        <td>{{ loan.principal_amount|floatformat:2 }}</td>
+                        <td>{{ loan.monthly_installment|floatformat:2 }}</td>
+                        <td>{{ loan.amount_paid|floatformat:2 }}</td>
+                        <td><strong>{{ loan.balance|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if loan.status == "ACTIVE" %}
+                                <span class="badge-loan active">Active</span>
+                            {% elif loan.status == "COMPLETED" %}
+                                <span class="badge-loan completed">Completed</span>
+                            {% else %}
+                                <span class="badge-loan cancelled">{{ loan.status }}</span>
                             {% endif %}
+                        </td>
+                        <td>{{ loan.start_date|date:"d M Y" }}</td>
+                        <td>
+                            <a href="{% url 'hr_payroll:loan_edit' loan.pk %}">Edit</a>
+                            &nbsp;·&nbsp;
+                            <a href="{% url 'hr_payroll:loan_repayment' loan.pk %}">Repayment</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-                        </div>
-
-                    </td>
-
-                </tr>
-
-            {% empty %}
-
-                <tr>
-                    <td colspan="8" class="empty">
-                        No staff loans found.
-                    </td>
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
+        {% else %}
+            <div class="empty">No staff loans have been recorded.</div>
+        {% endif %}
 
     </div>
 

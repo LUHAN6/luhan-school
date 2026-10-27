@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--blue:#123b8f;--blue2:#2563eb;--green:#159957;--red:#dc3545;--orange:#f59e0b;--ink:#14213d;--muted:#64748b;--bg:#f4f7fb;--card:#fff;--border:#e5eaf2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--ink);font-size:13px}
+.finance-wrap{max-width:1500px;margin:auto;padding:18px}
+.finance-head{background:linear-gradient(135deg,#0b1f44,#174ea6);color:#fff;border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 8px 25px rgba(15,61,145,.15)}
+.finance-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.finance-title{font-size:22px;font-weight:800;margin:0}
+.finance-sub{font-size:11px;opacity:.78;margin-top:3px}
+.live-pill{font-size:10px;font-weight:800;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);padding:6px 9px;border-radius:20px;white-space:nowrap}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#36d399;margin-right:5px}
+.finance-nav{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.finance-nav a{color:#fff;text-decoration:none;padding:7px 11px;border-radius:7px;background:rgba(255,255,255,.1);font-size:11px;font-weight:700}
+.finance-nav a:hover,.finance-nav a.active{background:#fff;color:var(--blue)}
+.finance-filter{display:flex;align-items:end;gap:9px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:14px}
+.filter-field{display:flex;flex-direction:column;gap:4px;min-width:145px}
+.filter-field label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.filter-field select,.filter-field input{height:35px;border:1px solid var(--border);border-radius:7px;padding:0 9px;background:#fff;color:var(--ink);font-size:12px}
+.filter-actions{display:flex;gap:6px}
+.filter-actions button,.filter-actions a{height:35px;border:0;border-radius:7px;padding:0 13px;display:inline-flex;align-items:center;text-decoration:none;font-size:11px;font-weight:800;cursor:pointer}
+.filter-actions button{background:var(--blue2);color:#fff}
+.filter-actions a{background:#eef2f7;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px;min-width:0}
+.kpi-label{font-size:10px;text-transform:uppercase;font-weight:800;color:var(--muted)}
+.kpi-value{font-size:20px;font-weight:900;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-income .kpi-value{color:var(--green)}.kpi-expense .kpi-value{color:var(--red)}.kpi-net .kpi-value{color:var(--blue)}
+.kpi-meta{font-size:10px;color:var(--muted);margin-top:3px}
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+.panel{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.panel-title{font-size:13px;font-weight:850;margin:0}.panel-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.chart-box{height:300px;position:relative}.chart-box.small{height:300px}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.summary{border:1px solid var(--border);border-radius:9px;padding:10px}
+.summary b{display:block;font-size:15px;margin-top:3px}.summary span{font-size:10px;color:var(--muted)}
+.activity{margin-top:12px}.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f7f9fc;color:#64748b;text-align:left;font-size:9px;text-transform:uppercase;padding:8px;border-bottom:1px solid var(--border)}
+td{padding:8px;border-bottom:1px solid #edf1f6;white-space:nowrap}
+.amount{font-weight:800}.positive{color:var(--green)}.negative{color:var(--red)}
+.refresh-note{font-size:9px;color:var(--muted)}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.chart-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.finance-wrap{padding:9px}.finance-head{padding:14px}.finance-title{font-size:18px}.finance-head-row{align-items:flex-start}.kpis{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:1fr}.filter-field{width:100%;min-width:0}.filter-actions{width:100%}.filter-actions button,.filter-actions a{flex:1;justify-content:center}.chart-box,.chart-box.small{height:250px}.finance-nav a{flex:1;text-align:center}}
+</style>
+</head>
+<body>
+<div class="finance-wrap">
+
+<header class="finance-head">
+<div class="finance-head-row">
+<div>
+<h1 class="finance-title">Finance Report</h1>
+<div class="finance-sub">Live financial overview from fees, payroll, inventory and transport</div>
+</div>
+<div class="live-pill"><span class="live-dot"></span>LIVE · <span id="lastUpdated">updating</span></div>
+</div>
+<nav class="finance-nav">
+<a href="/finance/" class="active">Overview</a>
+<a href="/finance/income/">Income</a>
+<a href="/finance/expenses/">Expenses</a>
+</nav>
+</header>
+
+<form method="get" class="finance-filter">
+<div class="filter-field">
+<label>Month</label>
+<select name="month">
+<option value="">All Months</option>
+<option value="1" {% if selected_month == 1 %}selected{% endif %}>January</option>
+<option value="2" {% if selected_month == 2 %}selected{% endif %}>February</option>
+<option value="3" {% if selected_month == 3 %}selected{% endif %}>March</option>
+<option value="4" {% if selected_month == 4 %}selected{% endif %}>April</option>
+<option value="5" {% if selected_month == 5 %}selected{% endif %}>May</option>
+<option value="6" {% if selected_month == 6 %}selected{% endif %}>June</option>
+<option value="7" {% if selected_month == 7 %}selected{% endif %}>July</option>
+<option value="8" {% if selected_month == 8 %}selected{% endif %}>August</option>
+<option value="9" {% if selected_month == 9 %}selected{% endif %}>September</option>
+<option value="10" {% if selected_month == 10 %}selected{% endif %}>October</option>
+<option value="11" {% if selected_month == 11 %}selected{% endif %}>November</option>
+<option value="12" {% if selected_month == 12 %}selected{% endif %}>December</option>
+</select>
+</div>
+<div class="filter-field">
+<label>Term</label>
+<select name="term">
+<option value="">All Terms</option>
+{% for term in terms %}
+<option value="{{ term.id }}" {% if selected_term == term.id %}selected{% endif %}>{{ term.name }} - {{ term.academic_year.year }}</option>
+{% endfor %}
+</select>
+</div>
+<div class="filter-field">
+<label>Year</label>
+<input type="number" name="year" value="{{ selected_year }}" placeholder="e.g. 2026" min="2000" max="2100">
+</div>
+<div class="filter-actions">
+<button type="submit">Apply Filters</button>
+<a href="/finance/">Clear</a>
+</div>
+</form>
+
+<section class="kpis">
+<div class="kpi kpi-income"><div class="kpi-label">Fees Income</div><div class="kpi-value">KES {{ income|floatformat:2 }}</div><div class="kpi-meta">Collected fee payments</div></div>
+<div class="kpi kpi-expense"><div class="kpi-label">Total Expenses</div><div class="kpi-value">KES {{ expenses|floatformat:2 }}</div><div class="kpi-meta">Payroll + inventory + transport</div></div>
+<div class="kpi kpi-net"><div class="kpi-label">Net Position</div><div class="kpi-value">KES {{ net|floatformat:2 }}</div><div class="kpi-meta">Income less expenses</div></div>
+<div class="kpi"><div class="kpi-label">Salaries</div><div class="kpi-value">KES {{ salaries|floatformat:2 }}</div><div class="kpi-meta">Gross payroll expense</div></div>
+<div class="kpi"><div class="kpi-label">Inventory</div><div class="kpi-value">KES {{ inventory|floatformat:2 }}</div><div class="kpi-meta">Purchase value</div></div>
+</section>
+
+<div class="chart-grid">
+<section class="panel">
+<div class="panel-head"><div><h2 class="panel-title">Income vs Expenses</h2><div class="panel-sub">12-month financial movement</div></div></div>
+<div class="chart-box"><canvas id="incomeExpenseChart"></canvas></div>
+</section>
+<section class="panel">
+<div class="panel-head"><div><h2 class="panel-title">Expense Composition</h2><div class="panel-sub">Current filtered expense mix</div></div></div>
+<div class="chart-box small"><canvas id="expenseChart"></canvas></div>
+</section>
+</div>
+
+<section class="panel">
+<div class="panel-head"><div><h2 class="panel-title">Financial Breakdown</h2><div class="panel-sub">Where the money is moving</div></div></div>
+<div class="summary-grid">
+<div class="summary"><span>Payroll / Salaries</span><b>KES {{ salaries|floatformat:2 }}</b></div>
+<div class="summary"><span>Inventory Purchases</span><b>KES {{ inventory|floatformat:2 }}</b></div>
+<div class="summary"><span>Transport / Fuel</span><b>KES {{ transport|floatformat:2 }}</b></div>
+</div>
+</section>
+
+<section class="panel activity">
+<div class="panel-head">
+<div><h2 class="panel-title">Recent Fee Income</h2><div class="panel-sub">Latest recorded fee payments</div></div>
+<a href="/finance/income/" style="font-size:10px;font-weight:800;color:#2563eb;text-decoration:none">View all →</a>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Receipt</th><th>Student</th><th>Method</th><th>Amount</th></tr></thead>
+<tbody>
+{% for payment in recent_income %}
+<tr>
+<td>{{ payment.payment_date }}</td>
+<td>{{ payment.receipt_number|default:"—" }}</td>
+<td>{{ payment.fee_record.student }}</td>
+<td>{{ payment.payment_method|default:"—" }}</td>
+<td class="amount positive">KES {{ payment.amount|floatformat:2 }}</td>
+</tr>
+{% empty %}<tr><td colspan="5">No fee payments found for the selected filters.</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+<div class="refresh-note" style="text-align:center;margin:10px">Dashboard refreshes live every 30 seconds.</div>
+</div>
+
+{{ chart_data|json_script:"finance-chart-data" }}
+
+<script>
+const initialData=JSON.parse(document.getElementById("finance-chart-data").textContent);
+let incomeExpenseChart=null,expenseChart=null;
+
+const money=n=>"KES "+Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function renderCharts(data){
+const c=document.getElementById("incomeExpenseChart");
+const e=document.getElementById("expenseChart");
+if(incomeExpenseChart)incomeExpenseChart.destroy();
+if(expenseChart)expenseChart.destroy();
+
+incomeExpenseChart=new Chart(c,{type:"line",data:{labels:data.labels,datasets:[
+{label:"Income",data:data.income,borderWidth:2,tension:.35,fill:false},
+{label:"Expenses",data:data.expenses,borderWidth:2,tension:.35,fill:false},
+{label:"Net",data:data.net,borderWidth:2,tension:.35,fill:false}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:x=>x.dataset.label+": "+money(x.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>"KES "+Number(v).toLocaleString()}}}}});
+
+expenseChart=new Chart(e,{type:"doughnut",data:{labels:["Salaries","Inventory","Transport"],datasets:[{data:[data.salaries.reduce((a,b)=>a+b,0),data.inventory.reduce((a,b)=>a+b,0),data.transport.reduce((a,b)=>a+b,0)],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:x=>x.label+": "+money(x.raw)}}}}});
+}
+
+renderCharts(initialData);
+
+async function refreshFinance(){
+try{
+const qs=window.location.search||"";
+const response=await fetch("/finance/live/"+qs,{credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest"}});
+if(!response.ok)return;
+const data=await response.json();
+document.querySelector(".kpi-income .kpi-value").textContent=money(data.income);
+document.querySelector(".kpi-expense .kpi-value").textContent=money(data.expenses);
+document.querySelector(".kpi-net .kpi-value").textContent=money(data.net);
+document.querySelectorAll(".kpi .kpi-value")[3].textContent=money(data.salaries);
+document.querySelectorAll(".kpi .kpi-value")[4].textContent=money(data.inventory);
+document.getElementById("lastUpdated").textContent=new Date().toLocaleTimeString();
+renderCharts(data.chart_data);
+}catch(err){console.warn("Finance live refresh failed",err)}
+}
+setInterval(refreshFinance,30000);
+document.getElementById("lastUpdated").textContent=new Date().toLocaleTimeString();
+</script>
+</body>
+</html>

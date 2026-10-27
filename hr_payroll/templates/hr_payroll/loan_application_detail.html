@@ -1,0 +1,424 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.review-page {
+    max-width:1000px;
+    margin:0 auto;
+    padding:18px;
+}
+
+.review-head {
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:white;
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+}
+
+.review-head h1 {
+    margin:0;
+    font-size:20px;
+    font-weight:800;
+}
+
+.review-head p {
+    margin:4px 0 0;
+    font-size:11px;
+    opacity:.75;
+}
+
+.review-card {
+    background:white;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    overflow:hidden;
+    margin-bottom:14px;
+}
+
+.review-title {
+    padding:11px 14px;
+    border-bottom:1px solid #e2e8f0;
+    font-size:12px;
+    font-weight:800;
+}
+
+.review-body {
+    padding:14px;
+}
+
+.review-item {
+    padding:9px 0;
+    border-bottom:1px solid #f1f5f9;
+}
+
+.review-item:last-child {
+    border-bottom:0;
+}
+
+.review-label {
+    color:#64748b;
+    text-transform:uppercase;
+    font-size:9px;
+    font-weight:800;
+}
+
+.review-value {
+    color:#0f172a;
+    font-size:13px;
+    font-weight:700;
+    margin-top:2px;
+}
+
+.review-actions {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.review-actions a,
+.review-actions button {
+    border:0;
+    border-radius:8px;
+    padding:9px 13px;
+    font-size:11px;
+    font-weight:800;
+    text-decoration:none;
+}
+
+.action-approve {
+    background:#16a34a;
+    color:white;
+}
+
+.action-reject {
+    background:#dc2626;
+    color:white;
+}
+
+.action-disburse {
+    background:#1d4ed8;
+    color:white;
+}
+
+.action-back {
+    background:#f1f5f9;
+    color:#334155;
+}
+
+.review-form input,
+.review-form select,
+.review-form textarea {
+    width:100%;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+    padding:8px 9px;
+    font-size:12px;
+}
+
+.review-form label {
+    display:block;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:4px;
+}
+</style>
+
+<div class="review-page">
+
+    <div class="review-head">
+
+        <h1>
+            <i class="bi bi-file-earmark-check me-1"></i>
+            Review Loan Application #{{ application.pk }}
+        </h1>
+
+        <p>
+            Staff loan application review and payroll loan processing.
+        </p>
+
+    </div>
+
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Application Status
+        </div>
+
+        <div class="review-body">
+
+            <span class="badge bg-primary">
+                {{ application.get_status_display }}
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Applicant
+        </div>
+
+        <div class="review-body">
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <div class="review-item">
+
+                        <div class="review-label">
+                            Employee
+                        </div>
+
+                        <div class="review-value">
+                            {{ application.employee.full_name }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <div class="review-item">
+
+                        <div class="review-label">
+                            Employee Number
+                        </div>
+
+                        <div class="review-value">
+                            {{ application.employee.employee_number }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Application Information
+        </div>
+
+        <div class="review-body">
+
+            <div class="row">
+
+                {% for field in application._meta.fields %}
+
+                    <div class="col-md-6">
+
+                        <div class="review-item">
+
+                            <div class="review-label">
+                                {{ field.verbose_name }}
+                            </div>
+
+                            <div class="review-value">
+
+                                {% if field.name == "status" %}
+                                    {{ application.get_status_display }}
+                                {% else %}
+                                    {% with value=application|getattribute:field.name %}
+                                        {{ value|default:"—" }}
+                                    {% endwith %}
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% if staff_loan %}
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Existing / Linked Payroll Loan
+        </div>
+
+        <div class="review-body">
+
+            <div class="row">
+
+                <div class="col-md-3">
+                    <div class="review-item">
+                        <div class="review-label">Principal</div>
+                        <div class="review-value">
+                            {{ staff_loan.principal_amount|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="review-item">
+                        <div class="review-label">Monthly</div>
+                        <div class="review-value">
+                            {{ staff_loan.monthly_installment|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="review-item">
+                        <div class="review-label">Paid</div>
+                        <div class="review-value">
+                            {{ staff_loan.amount_paid|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="review-item">
+                        <div class="review-label">Balance</div>
+                        <div class="review-value">
+                            {{ staff_loan.balance|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    {% if approval_form %}
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Approval Terms
+        </div>
+
+        <div class="review-body review-form">
+
+            <form method="post"
+                  action="{% url 'hr_payroll:loan_application_approve' application.pk %}">
+
+                {% csrf_token %}
+
+                {% for field in approval_form %}
+
+                    <div class="mb-3">
+
+                        {{ field.label_tag }}
+
+                        {{ field }}
+
+                        {% if field.errors %}
+                            <div class="text-danger small">
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+                <button type="submit"
+                        class="action-approve">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Approve Application
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    {% if reject_form %}
+
+    <div class="review-card">
+
+        <div class="review-title">
+            Rejection
+        </div>
+
+        <div class="review-body review-form">
+
+            <form method="post"
+                  action="{% url 'hr_payroll:loan_application_reject' application.pk %}">
+
+                {% csrf_token %}
+
+                {% for field in reject_form %}
+
+                    <div class="mb-3">
+
+                        {{ field.label_tag }}
+
+                        {{ field }}
+
+                    </div>
+
+                {% endfor %}
+
+                <button type="submit"
+                        class="action-reject">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Reject Application
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="review-actions">
+
+        <a href="{% url 'hr_payroll:loan_applications' %}"
+           class="action-back">
+            <i class="bi bi-arrow-left"></i>
+            Back to Applications
+        </a>
+
+        {% if application.status == "APPROVED" %}
+
+            <a href="{% url 'hr_payroll:loan_application_disburse' application.pk %}"
+               class="action-disburse">
+                <i class="bi bi-bank me-1"></i>
+                Disburse Loan
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

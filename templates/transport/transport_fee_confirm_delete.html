@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<div style="max-width:600px;margin:40px auto;padding:24px"><h2>Delete transport price?</h2><p>{{object}}</p><form method="post">{% csrf_token %}<button type="submit">Delete</button> <a href="{% url 'transport:transport_fee_dashboard' %}">Cancel</a></form></div>{% endblock %}

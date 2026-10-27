@@ -1,7 +1,7 @@
-﻿from timetable.legacy_compat import (
-    Teacher,
-    TeacherClassAssignment,
-    TeacherTeachingAssignment,
+﻿from timetable.models import TimetableTeacher
+from timetable.advanced_models import (
+    TimetableTeacherClassAssignment,
+    TimetableTeacherTeachingAssignment,
 )
 
 
@@ -18,7 +18,7 @@ def is_admin(user):
         return False
 
 
-def get_scheduling_teacher(user):
+def get_timetable_teacher(user):
     if not user or not user.is_authenticated:
         return None
 
@@ -29,9 +29,9 @@ def get_scheduling_teacher(user):
         if not employee:
             return None
 
-        teacher = employee.scheduling_teacher
+        teacher = employee.timetable_teacher
 
-        if teacher and teacher.is_active:
+        if teacher and teacher.active:
             return teacher
 
     except Exception:
@@ -70,12 +70,12 @@ def is_class_teacher_for(user, class_name, stream=None):
     if is_admin(user):
         return True
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return False
 
-    assignments = TeacherClassAssignment.objects.filter(
+    assignments = TimetableTeacherClassAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     )
@@ -116,7 +116,7 @@ def can_enter_marks(user, class_name, stream, subject):
     if is_class_teacher_for(user, class_name, stream):
         return True
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return False
@@ -127,7 +127,7 @@ def can_enter_marks(user, class_name, stream, subject):
         return False
 
     assignments = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -178,12 +178,12 @@ def can_access_class(user, class_name, stream=None):
     # --------------------------------------------------------
 
     if not stream:
-        if TeacherClassAssignment.objects.filter(
-            teacher=get_scheduling_teacher(user),
+        if TimetableTeacherClassAssignment.objects.filter(
+            teacher=get_timetable_teacher(user),
             is_active=True,
         ).exists():
-            for assignment in TeacherClassAssignment.objects.filter(
-                teacher=get_scheduling_teacher(user),
+            for assignment in TimetableTeacherClassAssignment.objects.filter(
+                teacher=get_timetable_teacher(user),
                 is_active=True,
             ):
                 if _same_class(
@@ -192,12 +192,12 @@ def can_access_class(user, class_name, stream=None):
                 ):
                     return True
 
-        if TeacherTeachingAssignment.objects.filter(
-            teacher=get_scheduling_teacher(user),
+        if TimetableTeacherTeachingAssignment.objects.filter(
+            teacher=get_timetable_teacher(user),
             is_active=True,
         ).exists():
-            for assignment in TeacherTeachingAssignment.objects.filter(
-                teacher=get_scheduling_teacher(user),
+            for assignment in TimetableTeacherTeachingAssignment.objects.filter(
+                teacher=get_timetable_teacher(user),
                 is_active=True,
             ):
                 if _same_class(
@@ -215,12 +215,12 @@ def can_access_class(user, class_name, stream=None):
     if is_class_teacher_for(user, class_name, stream):
         return True
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return False
 
-    class_assignments = TeacherClassAssignment.objects.filter(
+    class_assignments = TimetableTeacherClassAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     )
@@ -236,7 +236,7 @@ def can_access_class(user, class_name, stream=None):
             ):
                 return True
 
-    teaching_assignments = TeacherTeachingAssignment.objects.filter(
+    teaching_assignments = TimetableTeacherTeachingAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     )
@@ -267,14 +267,14 @@ def allowed_class_streams(user):
     if is_admin(user):
         return None
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return set()
 
     result = set()
 
-    class_assignments = TeacherClassAssignment.objects.filter(
+    class_assignments = TimetableTeacherClassAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     )
@@ -287,7 +287,7 @@ def allowed_class_streams(user):
             )
         )
 
-    teaching_assignments = TeacherTeachingAssignment.objects.filter(
+    teaching_assignments = TimetableTeacherTeachingAssignment.objects.filter(
         teacher=teacher,
         is_active=True,
     )
@@ -329,13 +329,13 @@ def allowed_subject_ids_for_class(
     ):
         return None
 
-    teacher = get_scheduling_teacher(user)
+    teacher = get_timetable_teacher(user)
 
     if not teacher:
         return set()
 
     assignments = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -390,5 +390,6 @@ def allowed_subject_ids_for_class(
             allowed_ids.add(subject.id)
 
     return allowed_ids
+
 
 

@@ -7,7 +7,8 @@ from accounts.views import (
     get_staff_teacher,
     is_class_teacher_for,
 )
-from timetable.legacy_compat import Subject as SchedulingSubject, TeacherTeachingAssignment
+from timetable.models import TimetableSubject
+from timetable.advanced_models import TimetableTeacherTeachingAssignment
 from students.models import Student
 
 from .models import WeeklyAssessmentReport, WeeklyAssessmentWeek
@@ -259,7 +260,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
             if teacher:
 
                 assignments = (
-                    TeacherTeachingAssignment.objects
+                    TimetableTeacherTeachingAssignment.objects
                     .filter(
                         teacher=teacher,
                         is_active=True,
@@ -364,7 +365,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
         # teacher's active teaching assignments.
         # -------------------------------------------------
 
-        assignments = TeacherTeachingAssignment.objects.filter(
+        assignments = TimetableTeacherTeachingAssignment.objects.filter(
             teacher=teacher,
             is_active=True,
         )
@@ -472,7 +473,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
         # Administrator can use every subject.
         if _is_admin(self.user):
 
-            return SchedulingSubject.objects.all().order_by(
+            return TimetableSubject.objects.all().order_by(
                 "name"
             )
 
@@ -480,14 +481,14 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
         teacher = get_staff_teacher(self.user)
 
         if not teacher:
-            return SchedulingSubject.objects.none()
+            return TimetableSubject.objects.none()
 
 
         # -------------------------------------------------
         # Subjects directly assigned to this teacher.
         # -------------------------------------------------
 
-        assignments = TeacherTeachingAssignment.objects.filter(
+        assignments = TimetableTeacherTeachingAssignment.objects.filter(
             teacher=teacher,
             is_active=True,
         ).select_related("subject")
@@ -536,7 +537,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
                 ):
 
                     subject_ids.update(
-                        SchedulingSubject.objects.values_list(
+                        TimetableSubject.objects.values_list(
                             "pk",
                             flat=True,
                         )
@@ -548,7 +549,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
                 continue
 
 
-        return SchedulingSubject.objects.filter(
+        return TimetableSubject.objects.filter(
             pk__in=subject_ids
         ).order_by(
             "name"
@@ -641,6 +642,7 @@ class WeeklyAssessmentReportForm(forms.ModelForm):
                 )
 
         return cleaned
+
 
 
 

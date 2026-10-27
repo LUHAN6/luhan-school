@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -591,6 +591,11 @@
         <span>Messaging</span>
     </a>
 
+    <a href="{% url 'messaging:bulk_dashboard' %}" class="side-link">
+        <span class="side-icon"><i class="bi bi-send-fill"></i></span>
+        <span>Bulk SMS &amp; Email</span>
+    </a>
+
     <div class="menu-title">
         System
     </div>
@@ -865,6 +870,73 @@
         </div>
 
 
+
+
+        <!-- =================================================
+             BULK SMS AND EMAIL INTEGRATION PANEL
+        ================================================== -->
+        {% if is_admin %}
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title mb-1">
+                        <i class="bi bi-send-fill text-primary me-2"></i>
+                        Bulk SMS &amp; Email
+                    </h2>
+                    <div class="panel-subtitle">
+                        Send school announcements to parents, staff and other opted-in contacts.
+                    </div>
+                </div>
+                <a href="{% url 'messaging:bulk_dashboard' %}" class="compose-btn">
+                    Open Bulk Messaging <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <a href="{% url 'messaging:bulk_campaigns' %}"
+                           class="text-decoration-none d-block p-3 rounded-3 h-100"
+                           style="background:#eff6ff;color:#1d4ed8;">
+                            <i class="bi bi-megaphone-fill fs-4"></i>
+                            <div class="fw-bold mt-2">Campaigns</div>
+                            <div class="small">Create and monitor broadcasts</div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{% url 'messaging:bulk_contacts' %}"
+                           class="text-decoration-none d-block p-3 rounded-3 h-100"
+                           style="background:#f5f3ff;color:#6d28d9;">
+                            <i class="bi bi-people-fill fs-4"></i>
+                            <div class="fw-bold mt-2">Contacts</div>
+                            <div class="small">Manage recipient details</div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{% url 'messaging:bulk_templates' %}"
+                           class="text-decoration-none d-block p-3 rounded-3 h-100"
+                           style="background:#ecfdf5;color:#047857;">
+                            <i class="bi bi-file-earmark-text-fill fs-4"></i>
+                            <div class="fw-bold mt-2">Message Templates</div>
+                            <div class="small">Reuse standard messages</div>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{% url 'messaging:bulk_logs' %}"
+                           class="text-decoration-none d-block p-3 rounded-3 h-100"
+                           style="background:#fff7ed;color:#c2410c;">
+                            <i class="bi bi-activity fs-4"></i>
+                            <div class="fw-bold mt-2">Delivery Logs</div>
+                            <div class="small">Review message outcomes</div>
+                        </a>
+                    </div>
+                </div>
+                <div class="small text-muted mt-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Actual SMS and email delivery depends on the configured provider.
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- =================================================
              MESSAGE PANELS

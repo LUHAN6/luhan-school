@@ -233,336 +233,221 @@ tr:hover td {
 
 </style>
 
-<div class="page-wrap">
+<style>
+.period-manager{max-width:1180px;margin:0 auto;padding:18px 14px 35px}
+.pm-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.pm-title h1{margin:0;font-size:24px;font-weight:800;color:#172033}
+.pm-title p{margin:4px 0 0;color:#64748b;font-size:13px}
+.pm-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pm-btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:8px;padding:9px 13px;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}
+.pm-primary{background:#1d4ed8;color:#fff}
+.pm-primary:hover{background:#1e40af;color:#fff}
+.pm-secondary{background:#eef2ff;color:#1d4ed8}
+.pm-danger{background:#fee2e2;color:#b91c1c}
+.pm-danger:hover{background:#fecaca;color:#991b1b}
+.pm-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 3px 12px rgba(15,23,42,.06);overflow:hidden}
+.pm-card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #eef0f4;gap:10px}
+.pm-card-head h2{font-size:14px;margin:0;font-weight:800;color:#172033}
+.pm-count{font-size:11px;color:#64748b}
+.pm-table-wrap{overflow-x:auto}
+.pm-table{width:100%;border-collapse:collapse;min-width:760px}
+.pm-table th{background:#f8fafc;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;padding:10px 12px;text-align:left;white-space:nowrap}
+.pm-table td{padding:11px 12px;border-top:1px solid #f1f5f9;font-size:12px;color:#334155;vertical-align:middle}
+.pm-table tr:hover td{background:#fafcff}
+.pm-name{font-weight:800;color:#172033}
+.pm-sub{font-size:10px;color:#94a3b8;margin-top:2px}
+.pm-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.02em}
+.pm-DRAFT{background:#fef3c7;color:#92400e}
+.pm-PROCESSING{background:#dbeafe;color:#1d4ed8}
+.pm-APPROVED{background:#dcfce7;color:#166534}
+.pm-PAID{background:#d1fae5;color:#065f46}
+.pm-CLOSED{background:#e2e8f0;color:#475569}
+.pm-actions-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pm-empty{padding:42px 20px;text-align:center;color:#64748b}
+.pm-empty i{font-size:30px;display:block;margin-bottom:9px;color:#94a3b8}
+.pm-empty strong{display:block;color:#334155;margin-bottom:4px}
+.pm-note{margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;color:#64748b;font-size:11px}
+@media(max-width:700px){
+    .period-manager{padding:12px 9px 25px}
+    .pm-title h1{font-size:20px}
+    .pm-header{align-items:stretch}
+    .pm-actions{width:100%}
+    .pm-btn{justify-content:center;flex:1}
+    .pm-card-head{padding:11px 12px}
+}
+</style>
 
-    <div class="page-header">
+<div class="period-manager">
 
-        <div>
-            <h1>💰 Payroll Records</h1>
-            <p>Select a payroll period to load its payroll records.</p>
+    <div class="pm-header">
+        <div class="pm-title">
+            <h1><i class="bi bi-calendar3"></i> Manage Payroll Periods</h1>
+            <p>Create, process, review and manage monthly payroll periods.</p>
         </div>
 
-        <div class="actions">
-
-            <a class="btn btn-primary"
-               href="{% url 'hr_payroll:payroll_period_add' %}">
-                + Create Monthly Payroll
+        <div class="pm-actions">
+            <a href="{% url 'hr_payroll:payroll_period_add' %}" class="pm-btn pm-primary">
+                <i class="bi bi-plus-lg"></i>
+                Create Monthly Payroll
             </a>
-
-            <a class="btn btn-secondary"
-               href="{% url 'hr_payroll:payslip_list' %}">
+            <a href="{% url 'hr_payroll:payslip_list' %}" class="pm-btn pm-secondary">
+                <i class="bi bi-receipt"></i>
                 Payslips
             </a>
-
         </div>
-
     </div>
 
-
-    <!-- =====================================================
-         PAYROLL PERIOD SELECTION
-         ===================================================== -->
-
-    <div class="selection-card">
-
-        <h2>📅 Select Payroll Period</h2>
-
-        <p>
-            Choose an existing payroll period below.
-            Payroll records will only be displayed after you load a period.
-        </p>
-
-        <form method="get"
-              action="{% url 'hr_payroll:payroll_list' %}"
-              class="period-form">
-
-            <div class="period-field">
-
-                <label for="period">
-                    Payroll Period
-                </label>
-
-                <select name="period"
-                        id="period"
-                        required>
-
-                    <option value="">
-                        -- Select Payroll Period --
-                    </option>
-
-                    {% for period in payroll_periods %}
-
-                        <option value="{{ period.pk }}"
-                            {% if selected_period and selected_period.pk == period.pk %}
-                                selected
-                            {% endif %}>
-
-                            {{ period.name }}
-                            — {{ period.start_date|date:"d M Y" }}
-                            to {{ period.end_date|date:"d M Y" }}
-
-                        </option>
-
-                    {% endfor %}
-
+    <div class="pm-card" style="margin-bottom:12px;">
+    <div style="padding:12px 14px;">
+        <form method="get" action="{% url 'hr_payroll:payroll_list' %}" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;">
+            <div>
+                <label style="display:block;font-size:10px;font-weight:800;color:#64748b;margin-bottom:4px;">MONTH</label>
+                <select name="month" style="height:36px;border:1px solid #dbe2ea;border-radius:7px;padding:0 10px;font-size:12px;min-width:145px;">
+                    <option value="">All Months</option>
+                    <option value="1" {% if selected_month == "1" %}selected{% endif %}>January</option>
+                    <option value="2" {% if selected_month == "2" %}selected{% endif %}>February</option>
+                    <option value="3" {% if selected_month == "3" %}selected{% endif %}>March</option>
+                    <option value="4" {% if selected_month == "4" %}selected{% endif %}>April</option>
+                    <option value="5" {% if selected_month == "5" %}selected{% endif %}>May</option>
+                    <option value="6" {% if selected_month == "6" %}selected{% endif %}>June</option>
+                    <option value="7" {% if selected_month == "7" %}selected{% endif %}>July</option>
+                    <option value="8" {% if selected_month == "8" %}selected{% endif %}>August</option>
+                    <option value="9" {% if selected_month == "9" %}selected{% endif %}>September</option>
+                    <option value="10" {% if selected_month == "10" %}selected{% endif %}>October</option>
+                    <option value="11" {% if selected_month == "11" %}selected{% endif %}>November</option>
+                    <option value="12" {% if selected_month == "12" %}selected{% endif %}>December</option>
                 </select>
-
             </div>
 
-            <button type="submit"
-                    class="btn btn-primary">
-                Load Payroll
+            <div>
+                <label style="display:block;font-size:10px;font-weight:800;color:#64748b;margin-bottom:4px;">YEAR</label>
+                <input type="number" name="year" value="{{ selected_year }}" placeholder="Year" style="height:36px;border:1px solid #dbe2ea;border-radius:7px;padding:0 10px;font-size:12px;width:100px;">
+            </div>
+
+            <button type="submit" class="pm-btn pm-primary" style="height:36px;">
+                <i class="bi bi-funnel"></i> Filter
             </button>
 
-        </form>
-
-    </div>
-
-
-    <!-- =====================================================
-         NO PERIOD SELECTED
-         ===================================================== -->
-
-    {% if not selected_period %}
-
-        <div class="table-wrap">
-
-            <div class="empty">
-
-                <div class="empty-icon">📋</div>
-
-                <h2>No Payroll Period Selected</h2>
-
-                <p>
-                    Select a payroll period above to view its payroll records.
-                </p>
-
-            </div>
-
-        </div>
-
-    {% endif %}
-
-
-    <!-- =====================================================
-         SELECTED PAYROLL PERIOD
-         ===================================================== -->
-
-    {% if selected_period %}
-
-        <div class="selected-period">
-
-            <h2>
-                {{ selected_period.name }}
-            </h2>
-
-            <div class="selected-period-details">
-
-                <span>
-                    <strong>Year:</strong>
-                    {{ selected_period.year }}
-                </span>
-
-                <span>
-                    <strong>Month:</strong>
-                    {{ selected_period.month }}
-                </span>
-
-                <span>
-                    <strong>Start:</strong>
-                    {{ selected_period.start_date|date:"d M Y" }}
-                </span>
-
-                <span>
-                    <strong>End:</strong>
-                    {{ selected_period.end_date|date:"d M Y" }}
-                </span>
-
-                <span>
-
-                    <strong>Status:</strong>
-
-                    {% if selected_period.status == "DRAFT" %}
-                        <span class="badge badge-draft">DRAFT</span>
-
-                    {% elif selected_period.status == "PROCESSING" %}
-                        <span class="badge badge-processing">PROCESSING</span>
-
-                    {% elif selected_period.status == "APPROVED" %}
-                        <span class="badge badge-approved">APPROVED</span>
-
-                    {% elif selected_period.status == "PAID" %}
-                        <span class="badge badge-paid">PAID</span>
-
-                    {% elif selected_period.status == "CLOSED" %}
-                        <span class="badge badge-closed">CLOSED</span>
-
-                    {% else %}
-                        <span class="badge">
-                            {{ selected_period.status }}
-                        </span>
-                    {% endif %}
-
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <div class="actions" style="margin-bottom: 15px;">
-
-            <a class="btn btn-info"
-               href="{% url 'hr_payroll:payroll_process' selected_period.pk %}">
-
-                {% if selected_period.status == "DRAFT" %}
-                    Review / Process Payroll
-                {% else %}
-                    View Payroll
-                {% endif %}
-
+            <a href="{% url 'hr_payroll:payroll_list' %}" class="pm-btn pm-secondary" style="height:36px;">
+                <i class="bi bi-arrow-counterclockwise"></i> Clear
             </a>
+        </form>
+    </div>
+</div>
+<div class="pm-card">
 
+        <div class="pm-card-head">
+            <h2><i class="bi bi-calendar-range"></i> Payroll Periods</h2>
+            <span class="pm-count">
+                {{ payroll_periods|length }} period{{ payroll_periods|length|pluralize }}
+            </span>
         </div>
 
+        {% if payroll_periods %}
 
-        <h2>Payroll Records</h2>
-
-        <div class="record-count">
-
-            {% if payroll_records %}
-                {{ payroll_records|length }} payroll record{{ payroll_records|length|pluralize }} loaded for {{ selected_period.name }}.
-            {% else %}
-                No payroll records have been generated for {{ selected_period.name }} yet.
-            {% endif %}
-
-        </div>
-
-
-        <div class="table-wrap">
-
-            <table>
-
+        <div class="pm-table-wrap">
+            <table class="pm-table">
                 <thead>
-
                     <tr>
-                        <th>#</th>
-                        <th>Employee</th>
-                        <th>Employee No.</th>
-                        <th>Basic Salary</th>
-                        <th>Allowances</th>
-                        <th>Gross Salary</th>
-                        <th>Deductions</th>
-                        <th>Loan</th>
-                        <th>Net Salary</th>
+                        <th>Payroll Period</th>
+                        <th>Month / Year</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
-
-                {% for record in payroll_records %}
-
+                    {% for period in payroll_periods %}
                     <tr>
 
                         <td>
-                            {{ forloop.counter }}
+                            <div class="pm-name">{{ period.name }}</div>
+                            <div class="pm-sub">ID #{{ period.pk }}</div>
                         </td>
 
                         <td>
-                            <strong>
-                                {{ record.employee.full_name }}
-                            </strong>
+                            {{ period.month|stringformat:"02d" }} / {{ period.year }}
                         </td>
 
                         <td>
-                            {{ record.employee.employee_number }}
+                            {{ period.start_date|date:"d M Y" }}
                         </td>
 
                         <td>
-                            {{ record.basic_salary|floatformat:2 }}
+                            {{ period.end_date|date:"d M Y" }}
                         </td>
 
                         <td>
-                            {{ record.total_allowances|floatformat:2 }}
+                            <span class="pm-status pm-{{ period.status }}">
+                                {{ period.get_status_display }}
+                            </span>
                         </td>
 
                         <td>
-                            <strong>
-                                {{ record.gross_salary|floatformat:2 }}
-                            </strong>
-                        </td>
+                            <div class="pm-actions-cell">
 
-                        <td>
-                            {{ record.total_deductions|floatformat:2 }}
-                        </td>
+                                <a class="pm-btn pm-secondary"
+                                   href="{% url 'hr_payroll:payroll_process' period.pk %}">
+                                    {% if period.status == "DRAFT" %}
+                                        <i class="bi bi-play-circle"></i> Process
+                                    {% else %}
+                                        <i class="bi bi-eye"></i> View
+                                    {% endif %}
+                                </a>
 
-                        <td>
-                            {{ record.loan_deductions|floatformat:2 }}
-                        </td>
+                                {% if period.status == "DRAFT" or period.status == "PROCESSING" %}
+                                <form method="post"
+                                      action="{% url 'hr_payroll:payroll_period_delete' period.pk %}"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Delete {{ period.name|escapejs }}? All payroll records belonging to this period will also be deleted.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="pm-btn pm-danger">
+                                        <i class="bi bi-trash3"></i> Delete
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="pm-sub">
+                                    <i class="bi bi-lock"></i> Protected
+                                </span>
+                                {% endif %}
 
-                        <td>
-                            <strong>
-                                {{ record.net_salary|floatformat:2 }}
-                            </strong>
-                        </td>
-
-                        <td>
-
-                            <form method="post"
-                                  action="{% url 'hr_payroll:payslip_generate' record.pk %}">
-
-                                {% csrf_token %}
-
-                                <button type="submit"
-                                        class="btn btn-info">
-                                    Generate Payslip
-                                </button>
-
-                            </form>
-
+                            </div>
                         </td>
 
                     </tr>
-
-                {% empty %}
-
-                    <tr>
-
-                        <td colspan="10"
-                            class="empty">
-
-                            <div class="empty-icon">📋</div>
-
-                            <strong>No Payroll Records</strong>
-
-                            <br>
-
-                            Payroll records have not been generated
-                            for this period yet.
-
-                            <br><br>
-
-                            <a class="btn btn-primary"
-                               href="{% url 'hr_payroll:payroll_process' selected_period.pk %}">
-                                Load / Process This Payroll
-                            </a>
-
-                        </td>
-
-                    </tr>
-
-                {% endfor %}
-
+                    {% endfor %}
                 </tbody>
-
             </table>
-
         </div>
 
-    {% endif %}
+        {% else %}
+
+        <div class="pm-empty">
+            <i class="bi bi-calendar-x"></i>
+            <strong>No payroll periods yet</strong>
+            <span>Create your first monthly payroll period to begin.</span>
+            <div style="margin-top:14px;">
+                <a href="{% url 'hr_payroll:payroll_period_add' %}" class="pm-btn pm-primary">
+                    <i class="bi bi-plus-lg"></i> Create Monthly Payroll
+                </a>
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="pm-note">
+        <i class="bi bi-info-circle"></i>
+        <strong>Period protection:</strong>
+        Draft and Processing periods can be deleted.
+        Approved, Paid and Closed periods are protected from deletion.
+        Deleting a Draft or Processing period also removes its payroll records.
+    </div>
 
 </div>
 
 {% endblock %}
+

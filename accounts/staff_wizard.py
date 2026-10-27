@@ -1,8 +1,10 @@
-﻿import secrets
+import secrets
 import string
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
@@ -16,13 +18,8 @@ from .models import (
     Role,
 )
 
-from timetable.legacy_compat import (
-    Subject as SchedulingSubject,
-    Teacher,
-    TeacherSubject,
-    TeacherClassAssignment,
-    TeacherTeachingAssignment,
-)
+from timetable.models import TimetableSubject, TimetableTeacher
+from timetable.advanced_models import TimetableTeacherSubject, TimetableTeacherClassAssignment, TimetableTeacherTeachingAssignment
 
 
 # ============================================================
@@ -95,20 +92,35 @@ def _generate_employee_number():
     return f"EMPLUH{highest + 1:03d}"
 
 
-def _generate_password():
+def _generate_password(username="", first_name="", last_name="", email=""):
 
     alphabet = (
         string.ascii_uppercase
         + string.ascii_lowercase
         + string.digits
+        + "!@#$%^&*-_"
+    )
+    candidate_user = User(
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
     )
 
-    random_part = "".join(
-        secrets.choice(alphabet)
-        for _ in range(10)
-    )
+    for _ in range(50):
+        candidate = "".join(
+            secrets.choice(alphabet)
+            for _ in range(24)
+        )
+        try:
+            validate_password(candidate, user=candidate_user)
+        except ValidationError:
+            continue
+        return candidate
 
-    return f"Luhan@{random_part}"
+    raise RuntimeError(
+        "Could not generate a password satisfying configured validators."
+    )
 
 
 def _generate_staff_credentials():
@@ -160,7 +172,7 @@ def _roles():
 
 def _subjects():
     return (
-        SchedulingSubject.objects
+        TimetableSubject.objects
         .filter(is_active=True)
         .order_by("name")
     )
@@ -788,6 +800,24 @@ def _create_staff_account(
     )
 
     try:
+        validate_password(
+            password or "",
+            user=User(
+                username=username or "",
+                first_name=data.get("first_name", ""),
+                last_name=data.get("last_name", ""),
+                email=data.get("email", ""),
+            ),
+        )
+    except ValidationError as exc:
+        messages.error(
+            request,
+            "The staff password failed the configured security rules. "
+            "Restart staff registration and try again."
+        )
+        return redirect("accounts:fresh_staff_role")
+
+    try:
 
         with transaction.atomic():
 
@@ -896,7 +926,7 @@ def _create_staff_account(
 
             if data.get("staff_type") == "TEACHING":
 
-                teacher = Teacher.objects.create(
+                teacher = TimetableTeacher.objects.create(
                     employee=employee,
                     name=(
                         f"{data.get('first_name', '')} "
@@ -917,7 +947,7 @@ def _create_staff_account(
                 )
 
                 selected_subjects = (
-                    SchedulingSubject.objects
+                    TimetableSubject.objects
                     .filter(
                         id__in=subject_ids,
                         is_active=True
@@ -927,7 +957,7 @@ def _create_staff_account(
 
                 for subject in selected_subjects:
 
-                    TeacherSubject.objects.get_or_create(
+                    TimetableTeacherSubject.objects.get_or_create(
                         teacher=teacher,
                         subject=subject,
                         defaults={
@@ -949,7 +979,7 @@ def _create_staff_account(
                 ):
 
                     subject = (
-                        SchedulingSubject.objects
+                        TimetableSubject.objects
                         .filter(
                             id=assignment.get(
                                 "subject_id"
@@ -978,7 +1008,7 @@ def _create_staff_account(
                     if not subject or not class_name:
                         continue
 
-                    TeacherTeachingAssignment.objects.get_or_create(
+                    TimetableTeacherTeachingAssignment.objects.get_or_create(
                         teacher=teacher,
                         subject=subject,
                         class_name=class_name,
@@ -988,7 +1018,7 @@ def _create_staff_account(
                         }
                     )
 
-                    TeacherClassAssignment.objects.get_or_create(
+                    TimetableTeacherClassAssignment.objects.get_or_create(
                         teacher=teacher,
                         class_name=class_name,
                         stream=stream or None,
@@ -1038,7 +1068,7 @@ def _create_staff_account(
                         continue
 
                     # One active class teacher per class/stream.
-                    TeacherClassAssignment.objects.filter(
+                    TimetableTeacherClassAssignment.objects.filter(
                         class_name=class_name,
                         stream=stream or None,
                         is_class_teacher=True,
@@ -1050,7 +1080,7 @@ def _create_staff_account(
                     )
 
                     class_assignment, created = (
-                        TeacherClassAssignment.objects.get_or_create(
+                        TimetableTeacherClassAssignment.objects.get_or_create(
                             teacher=teacher,
                             class_name=class_name,
                             stream=stream or None,
@@ -1151,8 +1181,8 @@ def success(request):
             "You do not have permission to view this page."
         )
 
-    staff = request.session.get(
-        "fresh_staff_created"
+    staff = request.session.pop(
+        "fresh_staff_created", None
     )
 
     if not staff:
@@ -1166,13 +1196,20 @@ def success(request):
             "accounts:staff_management"
         )
 
-    return render(
+    response = render(
         request,
         "accounts/fresh_staff_success.html",
         {
             "staff": staff,
         }
     )
+
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+
+    return response
+
 
 
 

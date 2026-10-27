@@ -5,10 +5,8 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from students.models import Student
-from timetable.legacy_compat import (
-    Subject,
-    TeacherTeachingAssignment,
-)
+from timetable.models import TimetableSubject
+from timetable.advanced_models import TimetableTeacherTeachingAssignment
 
 from .models import (
     WeeklyAssessmentReport,
@@ -129,10 +127,10 @@ def _admin_subjects(
     """
 
     if not class_name:
-        return Subject.objects.none()
+        return TimetableSubject.objects.none()
 
     subject_ids = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             class_name__iexact=class_name,
             stream__iexact=stream,
@@ -145,7 +143,7 @@ def _admin_subjects(
         .distinct()
     )
 
-    return Subject.objects.filter(
+    return TimetableSubject.objects.filter(
         pk__in=subject_ids,
     ).order_by("name")
 
@@ -250,7 +248,7 @@ def admin_write(request):
         "weeks": weeks,
         "classes": classes,
         "students": [],
-        "subjects": Subject.objects.none(),
+        "subjects": TimetableSubject.objects.none(),
         "rows": [],
         "selected_class": "",
         "selected_stream": "",
@@ -875,3 +873,4 @@ def admin_write_class(request):
         f"&week={week_id}"
         f"&subject={subject_id}"
     )
+

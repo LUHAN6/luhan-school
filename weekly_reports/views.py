@@ -1,4 +1,4 @@
-from accounts.views import user_has_role_permission
+﻿from accounts.views import user_has_role_permission
 from datetime import date
 
 from django.contrib import messages
@@ -16,7 +16,8 @@ from accounts.views import (
     get_staff_teacher,
     is_class_teacher_for,
 )
-from timetable.legacy_compat import Subject as SchedulingSubject, TeacherTeachingAssignment
+from timetable.models import TimetableSubject
+from timetable.advanced_models import TimetableTeacherTeachingAssignment
 from students.models import Student
 
 from .forms import WeeklyAssessmentReportForm
@@ -69,7 +70,7 @@ def _staff_can_edit_target(user, student, subject):
     # Subject teachers can WRITE only subjects they are
     # actively assigned to teach for this class/stream.
     try:
-        assignments = TeacherTeachingAssignment.objects.filter(
+        assignments = TimetableTeacherTeachingAssignment.objects.filter(
             teacher=teacher,
             subject=subject,
             class_name__iexact=student.class_name,
@@ -116,7 +117,7 @@ def _staff_can_view_report(user, report):
     # Subject teachers can view only subjects they are
     # actively assigned to teach for this class/stream.
     try:
-        assignments = TeacherTeachingAssignment.objects.filter(
+        assignments = TimetableTeacherTeachingAssignment.objects.filter(
             teacher=teacher,
             subject=subject,
             class_name__iexact=student.class_name,
@@ -241,7 +242,7 @@ def _accessible_students_for_staff(user):
 
 def _subjects_for_staff(user):
     if _is_admin(user):
-        return SchedulingSubject.objects.all().order_by("name")
+        return TimetableSubject.objects.all().order_by("name")
 
     students = _accessible_students_for_staff(user)
     class_names = {
@@ -256,7 +257,7 @@ def _subjects_for_staff(user):
         try:
             if is_class_teacher_for(user, class_name):
                 subject_ids.update(
-                    SchedulingSubject.objects.values_list(
+                    TimetableSubject.objects.values_list(
                         "pk",
                         flat=True,
                     )
@@ -275,7 +276,7 @@ def _subjects_for_staff(user):
         except Exception:
             continue
 
-    return SchedulingSubject.objects.filter(
+    return TimetableSubject.objects.filter(
         pk__in=subject_ids
     ).order_by("name")
 
@@ -399,7 +400,6 @@ def _build_weekly_expected_matrix(
     weekly assessment writing workspace.
     """
 
-    from timetable.legacy_compat import TeacherTeachingAssignment
 
     if not week:
         return {
@@ -427,7 +427,7 @@ def _build_weekly_expected_matrix(
     )
 
     assignments = list(
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(is_active=True)
         .select_related(
             "subject",
@@ -768,25 +768,25 @@ def _build_weekly_analysis(
 
     score_bands = [
         {
-            "label": "80–100%",
+            "label": "80â€“100%",
             "min": 80,
             "max": 100,
             "count": 0,
         },
         {
-            "label": "60–79%",
+            "label": "60â€“79%",
             "min": 60,
             "max": 79.99,
             "count": 0,
         },
         {
-            "label": "40–59%",
+            "label": "40â€“59%",
             "min": 40,
             "max": 59.99,
             "count": 0,
         },
         {
-            "label": "0–39%",
+            "label": "0â€“39%",
             "min": 0,
             "max": 39.99,
             "count": 0,
@@ -1152,7 +1152,7 @@ def admin_reports(request):
     )
 
     subjects = (
-        SchedulingSubject.objects
+        TimetableSubject.objects
         .all()
         .order_by("name")
     )
@@ -1290,6 +1290,16 @@ def admin_reports(request):
 
 @login_required
 def staff_reports(request):
+    # Module access is controlled by:
+    # Admin Portal -> Custom Role -> Django Permission.
+    if not _has_weekly_report_permission(
+        request.user,
+        "view_weeklyassessmentreport",
+    ):
+        return HttpResponseForbidden(
+            "You do not have permission to access Weekly Reports."
+        )
+
     if not _is_staff(request.user):
         return HttpResponseForbidden("Teaching staff access required.")
 
@@ -1566,7 +1576,7 @@ def student_reports(request):
 
     reports = _decorate_reports(list(queryset))
 
-    subjects = SchedulingSubject.objects.filter(
+    subjects = TimetableSubject.objects.filter(
         weekly_assessment_reports__student_id=profile.student_id,
         weekly_assessment_reports__is_published=True,
     ).distinct().order_by("name")
@@ -1705,7 +1715,7 @@ def parent_reports(request):
 
     reports = _decorate_reports(list(queryset))
 
-    subjects = SchedulingSubject.objects.filter(
+    subjects = TimetableSubject.objects.filter(
         weekly_assessment_reports__student_id__in=child_ids,
         weekly_assessment_reports__is_published=True,
     ).distinct().order_by("name")
@@ -2043,6 +2053,9 @@ def report_reply(request, pk):
         "weekly_reports:detail",
         pk=pk,
     )
+
+
+
 
 
 

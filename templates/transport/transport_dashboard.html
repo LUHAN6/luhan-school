@@ -1,320 +1,107 @@
 ﻿{% extends "base.html" %}
-
 {% block content %}
-
 <style>
-.transport-wrap {
-    padding: 24px;
-}
-
-.transport-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 22px;
-}
-
-.transport-title h1 {
-    margin: 0;
-}
-
-.transport-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 16px;
-    margin-bottom: 25px;
-}
-
-.transport-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 3px 14px rgba(0,0,0,.08);
-}
-
-.transport-card h3 {
-    margin: 0 0 8px;
-    font-size: 14px;
-}
-
-.transport-number {
-    font-size: 30px;
-    font-weight: 700;
-}
-
-.transport-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 25px;
-}
-
-.transport-actions a,
-.transport-btn {
-    text-decoration: none;
-    border: 0;
-    border-radius: 8px;
-    padding: 10px 15px;
-    cursor: pointer;
-    background: #173f5f;
-    color: white;
-}
-
-.transport-section {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 3px 14px rgba(0,0,0,.07);
-}
-
-.transport-section h2 {
-    margin-top: 0;
-}
-
-.transport-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.transport-table th,
-.transport-table td {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
-
-.transport-table th {
-    font-size: 13px;
-    text-transform: uppercase;
-}
-
-.transport-links a {
-    margin-right: 8px;
-}
+.transport-page{padding:18px;max-width:1500px;margin:auto}
+.transport-hero{background:linear-gradient(135deg,#0f3d75,#1769aa);color:#fff;border-radius:16px;padding:22px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:18px;box-shadow:0 8px 24px rgba(15,61,117,.16)}
+.transport-hero h1{margin:0;font-size:24px;font-weight:800}.transport-hero p{margin:5px 0 0;font-size:13px;opacity:.82}
+.transport-actions{display:flex;gap:7px;flex-wrap:wrap}.transport-actions a{background:#fff;color:#0f3d75;text-decoration:none;padding:8px 11px;border-radius:8px;font-size:12px;font-weight:700}
+.transport-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.transport-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;box-shadow:0 2px 9px rgba(15,23,42,.05)}
+.transport-kpi-top{display:flex;justify-content:space-between;align-items:center;color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase}
+.transport-kpi-value{font-size:25px;font-weight:800;color:#0f172a;margin-top:6px}
+.transport-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.transport-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;box-shadow:0 2px 9px rgba(15,23,42,.05)}
+.transport-card-head{padding:13px 15px;border-bottom:1px solid #eef2f7;display:flex;justify-content:space-between;align-items:center}
+.transport-card-head h3{margin:0;font-size:14px;font-weight:800;color:#172033}.transport-card-head a{font-size:11px;text-decoration:none;color:#1769aa;font-weight:700}
+.transport-list{padding:5px 0}.transport-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px}.transport-row:last-child{border-bottom:0}
+.transport-row a{color:#1769aa;text-decoration:none;font-weight:700}.transport-name{font-weight:700;color:#1e293b}.transport-meta{font-size:10px;color:#64748b;margin-top:2px}.transport-badge{font-size:9px;font-weight:800;padding:4px 7px;border-radius:999px;background:#eff6ff;color:#1769aa}
+.transport-empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px}
+@media(max-width:1000px){.transport-kpis{grid-template-columns:repeat(2,1fr)}.transport-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.transport-page{padding:10px}.transport-hero{padding:16px;display:block}.transport-hero h1{font-size:20px}.transport-actions{margin-top:12px}.transport-actions a{flex:1;text-align:center}.transport-kpis{grid-template-columns:repeat(2,1fr);gap:7px}.transport-kpi{padding:11px}.transport-kpi-value{font-size:21px}}
 </style>
 
-<div class="transport-wrap">
-
-    <div class="transport-title">
-        <div>
-            <h1>Transport Management</h1>
-            <p>Manage school vehicles, drivers, routes and student transport.</p>
-        </div>
+<div class="transport-page">
+  <div class="transport-hero">
+    <div>
+      <h1>Transport Control Centre</h1>
+      <p>Fleet, routes, assignments, trips, fuel and maintenance at a glance.</p>
     </div>
-
-    <div class="transport-grid">
-
-        <div class="transport-card">
-            <h3>Vehicles</h3>
-            <div class="transport-number">{{ total_vehicles }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Active Vehicles</h3>
-            <div class="transport-number">{{ active_vehicles }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Drivers</h3>
-            <div class="transport-number">{{ total_drivers }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Routes</h3>
-            <div class="transport-number">{{ total_routes }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Route Stops</h3>
-            <div class="transport-number">{{ total_stops }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Student Assignments</h3>
-            <div class="transport-number">{{ total_student_assignments }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Trips</h3>
-            <div class="transport-number">{{ total_trips }}</div>
-        </div>
-
-        <div class="transport-card">
-            <h3>Fuel Records</h3>
-            <div class="transport-number">{{ total_fuel_records }}</div>
-        </div>
-
-    </div>
-
     <div class="transport-actions">
+      <a href="{% url 'transport:vehicle_list' %}">Vehicles</a>
+      <a href="{% url 'transport:trip_list' %}">Trips</a>
+      <a href="{% url 'transport:fuel_list' %}">Fuel</a>
+      <a href="{% url 'transport:transport_fee_dashboard' %}" class="transport-fee-action">Transport Fees</a>
+    </div>
+  </div>
 
-        <a href="{% url 'transport:vehicle_list' %}">
-            Vehicles
-        </a>
+  <div class="transport-kpis">
+    <div class="transport-kpi"><div class="transport-kpi-top">Vehicles <span>ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â</span></div><div class="transport-kpi-value">{{ total_vehicles }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Active Vehicles <span>ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span></div><div class="transport-kpi-value">{{ active_vehicles }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Drivers <span>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¤</span></div><div class="transport-kpi-value">{{ total_drivers }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Routes <span>ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€</span></div><div class="transport-kpi-value">{{ total_routes }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Route Stops <span>ÃƒÂ¢Ã…â€™Ã¢â‚¬â€œ</span></div><div class="transport-kpi-value">{{ total_stops }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Student Assignments <span>ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Å“</span></div><div class="transport-kpi-value">{{ total_student_assignments }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Trips <span>ÃƒÂ¢Ã¢â‚¬Â¡Ã¢â‚¬Å¾</span></div><div class="transport-kpi-value">{{ total_trips }}</div></div>
+    <div class="transport-kpi"><div class="transport-kpi-top">Fuel Records <span>ÃƒÂ¢Ã¢â‚¬ÂºÃ‚Â½</span></div><div class="transport-kpi-value">{{ total_fuel_records }}</div></div>
+  </div>
 
-        <a href="{% url 'transport:driver_list' %}">
-            Drivers
-        </a>
-
-        <a href="{% url 'transport:route_list' %}">
-            Routes
-        </a>
-
-        <a href="{% url 'transport:routestop_list' %}">
-            Route Stops
-        </a>
-
-        <a href="{% url 'transport:student_assignment_list' %}">
-            Student Transport
-        </a>
-
-        <a href="{% url 'transport:assignment_list' %}">
-            Vehicle / Driver Assignments
-        </a>
-
-        <a href="{% url 'transport:trip_list' %}">
-            Trips
-        </a>
-
-        <a href="{% url 'transport:maintenance_list' %}">
-            Maintenance
-        </a>
-
-        <a href="{% url 'transport:fuel_list' %}">
-            Fuel
-        </a>
-
+  <div class="transport-grid">
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Fleet</h3><a href="{% url 'transport:vehicle_list' %}">Manage ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</a></div>
+      <div class="transport-list">
+        {% for vehicle in vehicles|slice:":6" %}
+        <div class="transport-row"><div><div class="transport-name">{{ vehicle }}</div><div class="transport-meta">Vehicle</div></div><span class="transport-badge">FLEET</span></div>
+        {% empty %}<div class="transport-empty">No vehicles recorded.</div>{% endfor %}
+      </div>
     </div>
 
-    <div class="transport-section">
-
-        <h2>Recent Vehicles</h2>
-
-        <table class="transport-table">
-
-            <thead>
-                <tr>
-                    <th>Registration</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Capacity</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            {% for vehicle in vehicles %}
-
-                <tr>
-                    <td>{{ vehicle.registration_number }}</td>
-                    <td>{{ vehicle.vehicle_name|default:"—" }}</td>
-                    <td>{{ vehicle.get_vehicle_type_display }}</td>
-                    <td>{{ vehicle.capacity }}</td>
-                    <td>{{ vehicle.get_status_display }}</td>
-                </tr>
-
-            {% empty %}
-
-                <tr>
-                    <td colspan="5">No vehicles recorded.</td>
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
-
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Routes</h3><a href="{% url 'transport:route_list' %}">Manage ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</a></div>
+      <div class="transport-list">
+        {% for route in routes|slice:":6" %}
+        <div class="transport-row"><div><div class="transport-name">{{ route }}</div><div class="transport-meta">Transport route</div></div><span class="transport-badge">ROUTE</span></div>
+        {% empty %}<div class="transport-empty">No routes recorded.</div>{% endfor %}
+      </div>
     </div>
 
-    <div class="transport-section">
-
-        <h2>Recent Routes</h2>
-
-        <table class="transport-table">
-
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Route</th>
-                    <th>Morning</th>
-                    <th>Afternoon</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            {% for route in routes %}
-
-                <tr>
-                    <td>{{ route.code }}</td>
-                    <td>{{ route.name }}</td>
-                    <td>{{ route.morning_departure|default:"—" }}</td>
-                    <td>{{ route.afternoon_departure|default:"—" }}</td>
-                    <td>{{ route.get_status_display }}</td>
-                </tr>
-
-            {% empty %}
-
-                <tr>
-                    <td colspan="5">No routes recorded.</td>
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
-
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Recent Trips</h3><a href="{% url 'transport:trip_list' %}">View all ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</a></div>
+      <div class="transport-list">
+        {% for trip in trips|slice:":6" %}
+        <div class="transport-row"><div><div class="transport-name">{{ trip }}</div><div class="transport-meta">Trip operation</div></div><span class="transport-badge">TRIP</span></div>
+        {% empty %}<div class="transport-empty">No trips recorded.</div>{% endfor %}
+      </div>
     </div>
 
-    <div class="transport-section">
-
-        <h2>Recent Trips</h2>
-
-        <table class="transport-table">
-
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Route</th>
-                    <th>Vehicle</th>
-                    <th>Driver</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            {% for trip in trips %}
-
-                <tr>
-                    <td>{{ trip.date }}</td>
-                    <td>{{ trip.route }}</td>
-                    <td>{{ trip.vehicle|default:"—" }}</td>
-                    <td>{{ trip.driver|default:"—" }}</td>
-                    <td>{{ trip.get_trip_type_display }}</td>
-                    <td>{{ trip.get_status_display }}</td>
-                </tr>
-
-            {% empty %}
-
-                <tr>
-                    <td colspan="6">No trips recorded.</td>
-                </tr>
-
-            {% endfor %}
-
-            </tbody>
-
-        </table>
-
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Operations</h3></div>
+      <div class="transport-list">
+        <div class="transport-row"><a href="{% url 'transport:driver_list' %}">Drivers</a><span class="transport-badge">{{ total_drivers }}</span></div>
+        <div class="transport-row"><a href="{% url 'transport:routestop_list' %}">Route Stops</a><span class="transport-badge">{{ total_stops }}</span></div>
+        <div class="transport-row"><a href="{% url 'transport:student_assignment_list' %}">Student Transport</a><span class="transport-badge">{{ total_student_assignments }}</span></div>
+        <div class="transport-row"><a href="{% url 'transport:assignment_list' %}">Vehicle Assignments</a></div>
+      </div>
     </div>
 
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Fleet Costs & Records</h3></div>
+      <div class="transport-list">
+        <div class="transport-row"><a href="{% url 'transport:fuel_list' %}">Fuel Records</a><span class="transport-badge">{{ total_fuel_records }}</span></div>
+        <div class="transport-row"><a href="{% url 'transport:maintenance_list' %}">Maintenance</a></div>
+        <div class="transport-row"><a href="{% url 'transport:transport_fee_dashboard' %}">Transport Fees</a><span class="transport-badge">Fees</span></div>
+        <div class="transport-row"><a href="{% url 'transport:vehicle_list' %}">Vehicle Models</a></div>
+      </div>
+    </div>
+
+    <div class="transport-card">
+      <div class="transport-card-head"><h3>Planning</h3></div>
+      <div class="transport-list">
+        <div class="transport-row"><a href="{% url 'transport:route_list' %}">Routes</a><span class="transport-badge">{{ total_routes }}</span></div>
+        <div class="transport-row"><a href="{% url 'transport:trip_list' %}">Trips</a><span class="transport-badge">{{ total_trips }}</span></div>
+      </div>
+    </div>
+  </div>
 </div>
-
 {% endblock %}
+
+

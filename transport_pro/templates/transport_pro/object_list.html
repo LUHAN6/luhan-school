@@ -1,0 +1,20 @@
+﻿{% extends "transport_pro/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="pagehead"><div><h1>{{ title }}</h1><div class="muted">Search, review and maintain transport records.</div></div>{% if kind != 'notifications' and kind != 'audit' %}{% if kind == 'learners' %}<a class="btn primary" href="{% url 'transport_pro:learner_registration' %}">+ Register learner</a>{% else %}<a class="btn primary" href="{% url 'transport_pro:create' kind %}">+ Add record</a>{% endif %}{% endif %}</div>
+<div class="card"><form method="get" style="display:flex;gap:8px;margin-bottom:14px"><input name="q" value="{{ query }}" placeholder="Search records..." aria-label="Search records"><button class="btn primary">Search</button></form>
+<div class="tablewrap"><table><thead><tr><th>Record</th><th>Details</th><th>Updated / date</th><th>Action</th></tr></thead><tbody>
+{% for item in items %}<tr><td><strong>{{ item }}</strong><div class="muted">#{{ item.pk }}</div></td>
+<td>
+{% if item.registration_number %}Capacity: {{ item.seating_capacity }} Â· Status: {{ item.get_status_display }}{% elif item.full_name %}{{ item.get_role_display }} Â· {{ item.phone }}{% elif item.service_date %}{{ item.get_direction_display }} Â· {{ item.vehicle.registration_number }} Â· {{ item.driver.full_name }}{% elif item.learner_admission_no %}{{ item.class_name }} Â· Parent: {{ item.parent_name }} Â· {{ item.get_status_display }}{% elif item.description %}{{ item.description|truncatechars:140 }}{% elif item.amount %}KSh {{ item.amount }}{% elif item.route %}Route: {{ item.route }}{% else %}{{ item.get_status_display|default:"Record" }}{% endif %}
+</td><td>{{ item.updated_at|date:"d M Y H:i"|default:item.created_at|date:"d M Y H:i" }}</td><td><a class="btn" href="{% url 'transport_pro:edit' kind item.pk %}">Edit</a>
+{% if kind == 'trips' %}
+<form method="post" action="{% url 'transport_pro:trip_action' item.pk 'authorise' %}" style="display:inline">{% csrf_token %}<button class="btn" {% if item.status != 'PLANNED' %}disabled{% endif %}>Authorise</button></form>
+<form method="post" action="{% url 'transport_pro:trip_action' item.pk 'start' %}" style="display:inline">{% csrf_token %}<button class="btn" {% if item.status != 'AUTHORISED' %}disabled{% endif %}>Start</button></form>
+{% if item.status == 'IN_PROGRESS' %}<form method="post" action="{% url 'transport_pro:trip_action' item.pk 'complete' %}" style="margin-top:6px">{% csrf_token %}<input name="end_odometer_km" placeholder="End odometer km" type="number"><input name="fuel_litres" placeholder="Fuel litres" type="number" step="0.01"><input name="closing_notes" placeholder="Closing notes"><button class="btn primary">Close trip</button></form>{% endif %}
+{% endif %}
+{% if kind == 'payments' and not item.verified %}<form method="post" action="{% url 'transport_pro:verify_payment' item.pk %}" style="display:inline">{% csrf_token %}<button class="btn primary">Verify payment</button></form>{% endif %}
+</td></tr>{% empty %}<tr><td colspan="4">No records found.</td></tr>{% endfor %}
+</tbody></table></div><p class="muted">Showing up to 500 records. Use search to narrow the list.</p></div>
+{% endblock %}
+

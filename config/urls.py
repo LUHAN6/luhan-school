@@ -1,4 +1,5 @@
-﻿from django.views.generic import RedirectView
+﻿from accounts import finance_views
+from django.views.generic import RedirectView
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
@@ -25,6 +26,10 @@ def home_redirect(request):
 # =========================================================
 
 urlpatterns = [
+    path('finance/', finance_views.overview, name='finance_overview'),
+    path('finance/income/', finance_views.income, name='finance_income'),
+    path('finance/expenses/', finance_views.expenses, name='finance_expenses'),
+    path('finance/live/', finance_views.live_data, name='finance_live_data'),
     path(
         "termly-submission/",
         include("termly_submission.urls"),
@@ -152,9 +157,8 @@ urlpatterns = [
         "timetable/",
         include("timetable.urls"),
     ),
-    # =====================================================
-    # LEGACY SCHEDULING URL
-    # =====================================================
+
+    # Legacy scheduling URL ? preserve compatibility
     path(
         "scheduling/",
         RedirectView.as_view(
@@ -162,9 +166,7 @@ urlpatterns = [
             permanent=False,
         ),
     ),
-
-
-    # =====================================================
+# =====================================================
     # STUDENTS
     # =====================================================
 
@@ -188,9 +190,14 @@ urlpatterns = [
     # TRANSPORT
     # =====================================================
 
+    path("transport/", RedirectView.as_view(url="/transport-new/", permanent=False), name="transport_legacy_dashboard"),
+
+    path("transport/", include("transport.urls")),
+
+        
     path(
-        "transport/",
-        include("transport.urls"),
+        "transport-new/",
+        include("transport_pro.urls"),
     ),
 
 
@@ -252,6 +259,7 @@ urlpatterns = [
         "lms/",
         include("lms.urls"),
     ),
+    path("discipline/", include("discipline.urls")),
 
     path("professional-documents/", include("professional_documents.urls")),
 ]
@@ -267,4 +275,7 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
     )
+
+
+
 

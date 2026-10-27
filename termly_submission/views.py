@@ -138,7 +138,7 @@ def _staff_users():
         TeacherTeachingAssignment.objects
         .filter(
             is_active=True,
-            teacher__is_active=True,
+            teacher__active=True,
         )
         .values_list("teacher_id", flat=True)
         .distinct()

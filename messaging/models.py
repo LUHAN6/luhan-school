@@ -100,3 +100,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.subject} - {self.recipient.username}"
+
+# Bulk SMS and email campaign models
+from .bulk_models import ContactGroup, Contact, MessageTemplate, Campaign, MessageLog

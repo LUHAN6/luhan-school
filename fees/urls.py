@@ -19,6 +19,9 @@ app_name = "fees"
 
 
 urlpatterns = [
+    path("fee-structure/unified/export/pdf/", views.unified_fee_structure_pdf, name="unified_fee_structure_pdf"),
+    path("fee-structure/unified/export/excel/", views.unified_fee_structure_excel, name="unified_fee_structure_excel"),
+    path("fee-structure/unified/", views.unified_fee_structure, name="unified_fee_structure"),
 
     # ========================================================
     # AUTOMATIC PAYMENT SETTINGS

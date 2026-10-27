@@ -2553,3 +2553,45 @@ def mpesa_callback(request):
         }
     )
 
+
+
+def _unified_fee_data(year_id=None,term_id=None,annual=False):
+    from django.db.models import Sum
+    from .models import AcademicYear,Term,FeeStructure
+    from transport.models import TransportFeeStructure
+    year=AcademicYear.objects.filter(pk=year_id).first() if year_id else AcademicYear.objects.filter(is_active=True).order_by("-year").first()
+    if not year:return None,[],[]
+    terms=Term.objects.all().order_by("order")
+    if term_id and not annual:terms=terms.filter(pk=term_id)
+    school=list(FeeStructure.objects.filter(academic_year=year,is_active=True,term__in=terms).values("class_name").annotate(total=Sum("amount")).order_by("class_name"))
+    transport=list(TransportFeeStructure.objects.filter(academic_year=year,is_active=True,term__in=terms).values("class_name","route__name","from_stop__name","to_stop__name").annotate(total=Sum("amount")).order_by("class_name","route__name","from_stop__stop_order"))
+    return year,school,transport
+@login_required
+def unified_fee_structure(request):
+    from .models import AcademicYear,Term
+    annual=request.GET.get("annual")=="1";year,school,transport=_unified_fee_data(request.GET.get("year"),request.GET.get("term"),annual)
+    return render(request,"fees/unified_fee_structure.html",{"year":year,"school_rows":school,"transport_rows":transport,"years":AcademicYear.objects.order_by("-year"),"terms":Term.objects.order_by("order"),"annual":annual,"selected_year":request.GET.get("year") or (year.id if year else ""),"selected_term":request.GET.get("term","")})
+@login_required
+def unified_fee_structure_excel(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    annual=request.GET.get("annual")=="1";year,school,transport=_unified_fee_data(request.GET.get("year"),request.GET.get("term"),annual)
+    if not year:return HttpResponse("No academic year configured.",status=404)
+    wb=Workbook();ws=wb.active;ws.title="School Fees";ws.append(["Academic Year","Class","School Fees Total"])
+    for r in school:ws.append([year.year,r["class_name"],float(r["total"] or 0)])
+    wt=wb.create_sheet("Transport Fees");wt.append(["Academic Year","Class","Route","From","To","Transport Total"])
+    for r in transport:wt.append([year.year,r["class_name"] or "All classes",r["route__name"],r["from_stop__name"],r["to_stop__name"],float(r["total"] or 0)])
+    out=HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");out["Content-Disposition"]=f'attachment; filename="fee_structure_{year.year}_{"annual" if annual else "termly"}.xlsx"';wb.save(out);return out
+@login_required
+def unified_fee_structure_pdf(request):
+    from django.http import HttpResponse
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle
+    annual=request.GET.get("annual")=="1";year,school,transport=_unified_fee_data(request.GET.get("year"),request.GET.get("term"),annual)
+    if not year:return HttpResponse("No academic year configured.",status=404)
+    out=HttpResponse(content_type="application/pdf");out["Content-Disposition"]=f'attachment; filename="fee_structure_{year.year}_{"annual" if annual else "termly"}.pdf"';doc=SimpleDocTemplate(out,pagesize=A4);st=getSampleStyleSheet()
+    story=[Paragraph(f"School Fee Structure - {year.year}",st["Title"]),Paragraph("Annual" if annual else "Termly",st["Heading2"]),Spacer(1,12),Paragraph("School Fees",st["Heading2"])]
+    d=[["Class","School Fees"]]+[[r["class_name"],f'{r["total"] or 0:,.2f}'] for r in school];t=Table(d,repeatRows=1);t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#102d63")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.4,colors.grey)]));story+=[t,Spacer(1,12),Paragraph("Transport Fees",st["Heading2"])]
+    d=[["Class","Route","From","To","Transport"]]+[[r["class_name"] or "All classes",r["route__name"],r["from_stop__name"],r["to_stop__name"],f'{r["total"] or 0:,.2f}'] for r in transport];t=Table(d,repeatRows=1);t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#102d63")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),.4,colors.grey)]));story.append(t);doc.build(story);return out

@@ -6,7 +6,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from fees.models import AcademicYear, Term
-from timetable.legacy_compat import Subject, TeacherTeachingAssignment
+from timetable.models import TimetableSubject
+from timetable.advanced_models import TimetableTeacherTeachingAssignment
 
 from weekly_reports.views import (
     _is_admin,
@@ -32,7 +33,7 @@ def _assigned_options(user):
         return []
 
     assignments = (
-        TeacherTeachingAssignment.objects
+        TimetableTeacherTeachingAssignment.objects
         .filter(
             teacher=teacher,
             is_active=True,
@@ -100,7 +101,7 @@ def _assignment_allowed(
     if not teacher:
         return False
 
-    qs = TeacherTeachingAssignment.objects.filter(
+    qs = TimetableTeacherTeachingAssignment.objects.filter(
         teacher=teacher,
         class_name__iexact=class_name,
         subject_id=subject_id,
@@ -130,7 +131,7 @@ def _admin_context():
 
         "terms": Term.objects.all().order_by("-id"),
 
-        "subjects": Subject.objects.all().order_by("name"),
+        "subjects": TimetableSubject.objects.all().order_by("name"),
     }
 
 
@@ -413,7 +414,7 @@ def document_create(request):
             )
 
         subject = get_object_or_404(
-            Subject,
+            TimetableSubject,
             pk=subject_id,
         )
 
@@ -859,4 +860,5 @@ def document_review(request, pk):
         "professional_documents:detail",
         pk=pk,
     )
+
 

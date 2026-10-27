@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 import csv
 import io
 from datetime import datetime
@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 
 from .forms import StudentForm
 from .models import Student, OnlineApplication
@@ -17,59 +18,98 @@ from parents.models import Parent
 
 def create_parent_account(student):
     """
-    Automatically create or update a parent account
-    when a learner is registered.
+    Create or link a parent account without taking over another user's account.
+
+    Existing parent accounts are reused only when their parent record matches
+    the parent's name and phone number.
     """
+    parent_name = (student.parent_name or "").strip()
+    parent_phone = (student.parent_phone or "").strip()
 
-    parent_name = student.parent_name.strip()
-    admission_no = student.admission_no.strip()
-    parent_phone = student.parent_phone.strip()
+    if not parent_name or not student.admission_no:
+        return None
 
-    if not parent_name or not admission_no:
-        return
-
-    # Username based on the parent name
-    username = parent_name.replace(" ", "_")
-
-    # Check whether this parent already has an account
-    user = User.objects.filter(username=username).first()
-
-    if not user:
-        user = User.objects.create_user(
-            username=username,
-            password=admission_no
+    with transaction.atomic():
+        # Reuse an existing parent only when both identity fields match.
+        parent = (
+            Parent.objects
+            .select_related("user")
+            .filter(
+                full_name__iexact=parent_name,
+                phone=parent_phone,
+            )
+            .first()
         )
 
-    # Create UserProfile if it does not exist
-    profile, created = UserProfile.objects.get_or_create(
-        user=user,
-        defaults={
-            "role": "PARENT",
-            "phone": parent_phone,
-        }
-    )
+        if parent is not None:
+            user = parent.user
 
-    if not created:
-        profile.role = "PARENT"
-        profile.phone = parent_phone
-        profile.save()
+            # Never attach a parent record to a privileged account.
+            if user.is_staff or user.is_superuser:
+                raise ValueError(
+                    "The matching parent record belongs to a privileged "
+                    "account. Manual review is required."
+                )
 
-    # Create Parent profile if it does not exist
-    parent, created = Parent.objects.get_or_create(
-        user=user,
-        defaults={
-            "full_name": parent_name,
-            "phone": parent_phone,
-        }
-    )
+            try:
+                profile = user.profile
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(
+                    user=user,
+                    role="PARENT",
+                    phone=parent_phone,
+                )
 
-    if not created:
-        parent.full_name = parent_name
-        parent.phone = parent_phone
-        parent.save()
+            if profile.role != "PARENT":
+                raise ValueError(
+                    "The matching parent record is linked to an account "
+                    "whose role is not PARENT. Manual review is required."
+                )
 
-    # Link the learner to the parent
-    parent.children.add(student)
+            if profile.student_id is not None or profile.employee_id is not None:
+                raise ValueError(
+                    "The matching account is linked to a student or employee. "
+                    "Manual review is required."
+                )
+
+            profile.phone = parent_phone
+            profile.save(update_fields=["phone"])
+
+            parent.children.add(student)
+            return parent
+
+        # Parent names are not unique identifiers. Never take over an
+        # existing username unless its matching Parent record was found above.
+        base_username = "_".join(parent_name.split())[:140] or "parent"
+        username = base_username
+        suffix = 2
+
+        while User.objects.filter(username__iexact=username).exists():
+            username = f"{base_username[:140 - len(str(suffix))]}_{suffix}"
+            suffix += 1
+
+        # A newly created parent account must not have a usable password.
+        user = User.objects.create_user(
+            username=username,
+            password=None,
+        )
+        user.set_unusable_password()
+        user.save(update_fields=["password"])
+
+        UserProfile.objects.create(
+            user=user,
+            role="PARENT",
+            phone=parent_phone,
+        )
+
+        parent = Parent.objects.create(
+            user=user,
+            full_name=parent_name,
+            phone=parent_phone,
+        )
+        parent.children.add(student)
+
+        return parent
 
 
 
@@ -915,103 +955,64 @@ def student_import_template(request):
 
 
 
+
+def save_student_transport(student, route=None, from_stop=None, to_stop=None):
+    from transport.models import StudentTransportAssignment
+    if not getattr(student, "transport_required", False):
+        StudentTransportAssignment.objects.filter(student=student, status="ACTIVE").update(status="INACTIVE")
+        return None
+    if not route or not from_stop or not to_stop:
+        raise ValueError("Transport is required but route/From/To is incomplete.")
+    if from_stop.route_id != route.id or to_stop.route_id != route.id:
+        raise ValueError("Selected transport stops do not belong to the selected route.")
+    assignment = StudentTransportAssignment.objects.filter(student=student, status="ACTIVE").order_by("-id").first()
+    if assignment is None:
+        assignment = StudentTransportAssignment(student=student)
+    assignment.route = route
+    assignment.pickup_stop = from_stop
+    assignment.dropoff_stop = to_stop
+    assignment.status = "ACTIVE"
+    assignment.save()
+    return assignment
+
+
+def resolve_transport_structure(student, academic_year, term):
+    from transport.models import TransportFeeStructure
+    assignment = student.transport_assignments.filter(status="ACTIVE").select_related("route", "pickup_stop", "dropoff_stop").order_by("-id").first()
+    if not assignment or not assignment.route or not assignment.pickup_stop or not assignment.dropoff_stop:
+        raise ValueError("Transport is enabled but no complete transport assignment exists.")
+    qs = TransportFeeStructure.objects.filter(
+        academic_year=academic_year, term=term, route=assignment.route,
+        from_stop=assignment.pickup_stop, to_stop=assignment.dropoff_stop, is_active=True,
+    )
+    return qs.filter(class_name=student.class_name).first() or qs.filter(class_name="").first()
+
+
+
 def apply_admission_fee_structure(student):
-    """
-    Automatically create the current term FeeRecord for a newly admitted
-    learner using the active FeeStructure configured for the learner's class.
-    """
-
     from django.db.models import Sum
-    from fees.models import AcademicYear, Term, FeeRecord, FeeStructure
+    from fees.models import AcademicYear,Term,FeeRecord,FeeStructure
+    from transport.models import TransportFeeCharge,StudentTransportAssignment
+    year=AcademicYear.objects.filter(is_active=True).order_by("-year").first();term=Term.objects.filter(is_active=True).order_by("order").first()
+    if not year or not term:return False,"No active academic year or term is configured."
+    if not student.class_name:return False,"Learner has no class configured."
+    school=FeeStructure.objects.filter(academic_year=year,term=term,class_name=student.class_name,is_active=True).aggregate(total=Sum("amount"))["total"] or 0
+    ts=None;transport=0
+    if getattr(student,"transport_required",False):
+        ts=resolve_transport_structure(student,year,term)
+        if not ts:return False,f"No approved transport price exists for {student.class_name} for the selected route and stops in {term.name} {year.year}."
+        transport=ts.amount
+    total=school+transport
+    if total<=0:return False,f"No active fee structure found for {student.class_name} - {year.year} - {term.name}."
+    existing=FeeRecord.objects.filter(student=student,academic_year=year,term=term).first()
+    if existing:return True,existing
+    prev=FeeRecord.objects.filter(student=student,academic_year=year).exclude(term=term).select_related("term").order_by("-term__order","-id").first()
+    fr=FeeRecord.objects.create(student=student,academic_year=year,term=term,opening_balance=prev.balance if prev else 0,amount_charged=total,old_academic_year=str(year.year),old_term=str(term.order))
+    if ts:
+        a=StudentTransportAssignment.objects.filter(student=student,status="ACTIVE").order_by("-id").first()
+        if a:TransportFeeCharge.objects.get_or_create(student_assignment=a,fee_structure=ts,defaults={"fee_record":fr,"amount":ts.amount,"status":"UNPAID"})
+    return True,fr
 
-    # Get the active academic year and active term.
-    academic_year = (
-        AcademicYear.objects
-        .filter(is_active=True)
-        .order_by("-year")
-        .first()
-    )
-
-    term = (
-        Term.objects
-        .filter(is_active=True)
-        .order_by("order")
-        .first()
-    )
-
-    if not academic_year or not term:
-        return False, "No active academic year or term is configured."
-
-    if not student.class_name:
-        return False, "Learner has no class configured."
-
-    # Total all active fee items configured for this learner's class.
-    total = (
-        FeeStructure.objects
-        .filter(
-            academic_year=academic_year,
-            term=term,
-            class_name=student.class_name,
-            is_active=True,
-        )
-        .aggregate(total=Sum("amount"))
-        ["total"]
-    )
-
-    if total is None:
-        return False, (
-            f"No active fee structure found for "
-            f"{student.class_name} - {academic_year.year} - {term.name}."
-        )
-
-    # Never create duplicate fee records.
-    fee_record = (
-        FeeRecord.objects
-        .filter(
-            student=student,
-            academic_year=academic_year,
-            term=term,
-        )
-        .first()
-    )
-
-    if fee_record:
-        return True, fee_record
-
-    # Calculate opening balance from the learner's previous record
-    # within the same academic year, if one exists.
-    previous_record = (
-        FeeRecord.objects
-        .filter(
-            student=student,
-            academic_year=academic_year,
-        )
-        .exclude(term=term)
-        .select_related("term")
-        .order_by("-term__order", "-id")
-        .first()
-    )
-
-    opening_balance = (
-        previous_record.balance
-        if previous_record
-        else 0
-    )
-
-    fee_record = FeeRecord.objects.create(
-        student=student,
-        academic_year=academic_year,
-        term=term,
-        opening_balance=opening_balance,
-        amount_charged=total,
-        old_academic_year=str(academic_year.year),
-        old_term=str(term.order),
-    )
-
-    return True, fee_record
-
-@role_permission_required("add_student",
-"students")
 def add_student(request):
 
     if request.method == "POST":
@@ -1339,43 +1340,32 @@ def online_application_detail(request, id):
 
 
 @role_permission_required("change_onlineapplication", "students")
-def admit_online_application(request, id):
+@login_required
+def admit_online_application(request, application_id):
+    from django.utils import timezone
 
     application = get_object_or_404(
         OnlineApplication,
-        id=id
+        pk=application_id
     )
+
+    # Never create another student for an already-processed application.
+    if application.status != "Pending":
+        messages.warning(
+            request,
+            f"This application has already been processed: "
+            f"{application.status}."
+        )
+        return redirect("online_applications")
 
     if request.method != "POST":
         return redirect(
             "online_application_detail",
-            id=id
-        )
-
-    if application.status == "Admitted":
-        messages.warning(
-            request,
-            "This applicant has already been admitted."
-        )
-        return redirect(
-            "online_application_detail",
-            id=id
-        )
-
-    if application.status == "Rejected":
-        messages.error(
-            request,
-            "A rejected application cannot be admitted."
-        )
-        return redirect(
-            "online_application_detail",
-            id=id
+            id=application.id
         )
 
     try:
-
         with transaction.atomic():
-
             student = Student.objects.create(
                 first_name=application.first_name,
                 middle_name=application.middle_name,
@@ -1386,79 +1376,25 @@ def admit_online_application(request, id):
                 stream=application.requested_stream,
                 parent_name=application.parent_name,
                 parent_phone=application.parent_phone,
+                transport_required=application.transport_required,
             )
 
-            # --------------------------------------------------------
-            # CREATE STUDENT PORTAL ACCOUNT
-            # --------------------------------------------------------
-            username = student.admission_no.lower()
-            password = student.admission_no
-
-            user = User.objects.filter(
-                username=username
-            ).first()
-
-            if not user:
-                user = User.objects.create_user(
-                    username=username,
-                    password=password
-                )
-            else:
-                user.set_password(password)
-                user.save(
-                    update_fields=["password"]
-                )
-
-            # Find an existing profile already linked to this student,
-            # or the profile belonging to the portal user.
-            student_profile = (
-                UserProfile.objects
-                .filter(student=student)
-                .first()
+            save_student_transport(
+                student,
+                application.transport_route,
+                application.transport_from_stop,
+                application.transport_to_stop,
             )
 
-            if student_profile is None:
-                student_profile = (
-                    UserProfile.objects
-                    .filter(user=user)
-                    .first()
-                )
-
-            if student_profile is None:
-                student_profile = UserProfile.objects.create(
-                    user=user,
-                    role="STUDENT",
-                    student=student,
-                    phone=application.parent_phone,
-                )
-            else:
-                # If this profile belongs to another user, use its user
-                # for the student's portal account.
-                user = student_profile.user
-
-                student_profile.role = "STUDENT"
-                student_profile.student = student
-                student_profile.phone = application.parent_phone
-                student_profile.is_active = True
-                student_profile.save()
-
-            # Automatically create/update parent account
             create_parent_account(student)
+            ok, result = apply_admission_fee_structure(student)
 
-            # Automatically apply the configured fee structure
-            fee_ok, fee_result = apply_admission_fee_structure(student)
-
-            if not fee_ok:
-                raise Exception(
-                    f"Fee structure could not be applied: {fee_result}"
-                )
-
-            from django.utils import timezone
+            if not ok:
+                raise ValueError(result)
 
             application.status = "Admitted"
             application.admitted_student = student
             application.processed_at = timezone.now()
-
             application.save(
                 update_fields=[
                     "status",
@@ -1469,24 +1405,21 @@ def admit_online_application(request, id):
 
         messages.success(
             request,
-            f"{application.get_full_name()} admitted successfully. "
-            f"Admission Number: {student.admission_no}"
+            f"{student.get_full_name()} admitted successfully."
         )
+        return redirect("online_applications")
 
     except Exception as exc:
-
-        import traceback
-        traceback.print_exc()
-
         messages.error(
             request,
-            "Admission failed: " + str(exc)
+            f"Admission could not be completed: {exc}"
+        )
+        return redirect(
+            "online_application_detail",
+            id=application.id
         )
 
-    return redirect("online_applications")
 
-
-@role_permission_required("change_onlineapplication", "students")
 def reject_online_application(request, id):
 
     application = get_object_or_404(
@@ -1902,4 +1835,20 @@ def student_promotion_history(request, id):
     )
 
 
+
+
+
+@login_required
+
+def transport_fee_quote(request):
+    from django.http import JsonResponse
+    from fees.models import AcademicYear,Term
+    from transport.models import TransportFeeStructure
+    cn=(request.GET.get("class_name") or "").strip();rid=request.GET.get("route_id");fid=request.GET.get("from_stop_id");tid=request.GET.get("to_stop_id")
+    year=AcademicYear.objects.filter(is_active=True).order_by("-year").first();term=Term.objects.filter(is_active=True).order_by("order").first()
+    if not all([cn,rid,fid,tid,year,term]):return JsonResponse({"ok":False,"amount":"0.00","message":"Select class, route, From and To."})
+    q=TransportFeeStructure.objects.filter(academic_year=year,term=term,route_id=rid,from_stop_id=fid,to_stop_id=tid,is_active=True)
+    obj=q.filter(class_name=cn).first() or q.filter(class_name="").first()
+    if not obj:return JsonResponse({"ok":False,"amount":"0.00","message":"No approved transport price for this selection."})
+    return JsonResponse({"ok":True,"amount":f"{obj.amount:.2f}","label":obj.billing_label,"structure_id":obj.pk})
 

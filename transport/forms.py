@@ -1,4 +1,5 @@
 ﻿from django import forms
+from fees.models import AcademicYear, Term
 
 from .models import (
     Vehicle,
@@ -10,8 +11,8 @@ from .models import (
     TransportTrip,
     VehicleMaintenance,
     FuelRecord,
+    TransportFeeStructure,
 )
-
 
 class BootstrapModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -53,22 +54,10 @@ class VehicleForm(BootstrapModelForm):
 class DriverForm(BootstrapModelForm):
     class Meta:
         model = Driver
-        fields = [
-            "first_name",
-            "last_name",
-            "phone",
-            "national_id",
-            "licence_number",
-            "licence_expiry",
-            "status",
-            "address",
-            "notes",
-        ]
+        fields = ["employee", "licence_number", "licence_expiry", "status", "address", "notes"]
         widgets = {
             "licence_expiry": forms.DateInput(attrs={"type": "date"}),
-            "notes": forms.Textarea(attrs={"rows": 3}),
         }
-
 
 class RouteForm(BootstrapModelForm):
     class Meta:
@@ -223,3 +212,27 @@ class FuelRecordForm(BootstrapModelForm):
             "date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
+
+class TransportFeeStructureForm(forms.ModelForm):
+    class Meta:
+        model=TransportFeeStructure
+        fields=["academic_year","term","class_name","route","from_stop","to_stop","amount","billing_label","is_active"]
+        widgets={"class_name":forms.TextInput(attrs={"placeholder":"e.g. Grade 5"}),"amount":forms.NumberInput(attrs={"step":"0.01","min":"0"})}
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields["from_stop"].queryset=RouteStop.objects.filter(is_active=True).select_related("route").order_by("route__name","stop_order")
+        self.fields["to_stop"].queryset=RouteStop.objects.filter(is_active=True).select_related("route").order_by("route__name","stop_order")
+    def clean(self):
+        c=super().clean();route=c.get("route");a=c.get("from_stop");b=c.get("to_stop")
+        if route and a and a.route_id!=route.id:raise forms.ValidationError("From/Pickup stop must belong to the selected route.")
+        if route and b and b.route_id!=route.id:raise forms.ValidationError("To/Drop-off stop must belong to the selected route.")
+        if a and b and a.id==b.id:raise forms.ValidationError("From and To stops must be different.")
+        return c
+
+class TransportFeeGenerateForm(forms.Form):
+    academic_year = forms.ModelChoiceField(queryset=AcademicYear.objects.all(), empty_label="Select academic year")
+    term = forms.ModelChoiceField(queryset=Term.objects.all(), empty_label="Select term")
+    route = forms.ModelChoiceField(queryset=Route.objects.all(), required=False, empty_label="All active routes")
+
+
+

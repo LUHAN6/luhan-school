@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance Comparison | {{ branding.school_name|default:"Luhan School" }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#f4f7fb;color:#172b4d;font-family:Arial,sans-serif}
+.hero{background:linear-gradient(120deg,#142b4a,#176b87);color:white;padding:28px 0}
+.panel{border:0;border-radius:14px;box-shadow:0 5px 22px #172b4d12}
+.metric{background:#f5f8fc;border-radius:12px;padding:18px;height:100%}
+.metric small{display:block;color:#5d6b82;margin-bottom:8px}
+.metric strong{font-size:1.5rem}
+.table thead th{background:#edf3f9;white-space:nowrap}
+@media print{.no-print{display:none!important}body{background:white}.panel{box-shadow:none}}
+</style>
+</head>
+<body>
+<header class="hero">
+<div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+<div>
+<div class="small text-uppercase">Academic Performance</div>
+<h1 class="h3 mb-1">User-Controlled Comparison</h1>
+<p class="mb-0">Choose both periods and assessment types. Nothing is selected automatically.</p>
+</div>
+<a class="btn btn-light no-print" href="{% url 'academic:performance_centre' %}">Performance Centre</a>
+</div>
+</header>
+
+<main class="container py-4">
+{% if errors %}
+<div class="alert alert-warning">
+<strong>Check your selections:</strong>
+<ul class="mb-0 mt-2">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<section class="card panel mb-4">
+<div class="card-body p-4">
+<h2 class="h5 mb-3">1. Choose the comparison scope</h2>
+<form method="get" id="comparison-form">
+<input type="hidden" name="compare" value="1">
+<div class="row g-3">
+<div class="col-md-4">
+<label class="form-label" for="mode">Report scope</label>
+<select class="form-select" id="mode" name="mode" required>
+{% if is_admin %}<option value="school" {% if mode == "school" %}selected{% endif %}>Whole school</option>{% endif %}
+<option value="class" {% if mode == "class" %}selected{% endif %}>Class and stream</option>
+<option value="learner" {% if mode == "learner" %}selected{% endif %}>Individual learner</option>
+</select>
+</div>
+<div class="col-md-4 scope-class">
+<label class="form-label" for="class_name">Class name</label>
+<input class="form-control" id="class_name" name="class_name" value="{{ class_name }}" placeholder="e.g. Grade 7">
+</div>
+<div class="col-md-4 scope-class">
+<label class="form-label" for="stream">Stream</label>
+<input class="form-control" id="stream" name="stream" value="{{ stream_name }}" placeholder="e.g. Blue">
+</div>
+<div class="col-md-4 scope-learner">
+<label class="form-label" for="admission_no">Learner admission number</label>
+<input class="form-control" id="admission_no" name="admission_no" value="{{ admission_no }}" placeholder="Enter admission number">
+</div>
+</div>
+
+<hr class="my-4">
+<h2 class="h5 mb-3">2. Select the current results</h2>
+<div class="row g-3">
+<div class="col-md-4">
+<label class="form-label" for="current_year">Academic year</label>
+<select class="form-select year-select" id="current_year" name="current_year" required>
+<option value="">Choose year</option>
+{% for year in years %}<option value="{{ year.pk }}" {% if fields.current_year == year.pk|stringformat:"s" %}selected{% endif %}>{{ year }}</option>{% endfor %}
+</select>
+</div>
+<div class="col-md-4">
+<label class="form-label" for="current_term">Term</label>
+<select class="form-select term-select" id="current_term" name="current_term" required>
+<option value="">Choose term</option>
+{% for term in terms %}<option value="{{ term.pk }}" data-year="{{ term.academic_year_id }}" {% if fields.current_term == term.pk|stringformat:"s" %}selected{% endif %}>{{ term }} ? {{ term.academic_year }}</option>{% endfor %}
+</select>
+</div>
+<div class="col-md-4">
+<label class="form-label" for="current_type">Assessment type</label>
+<select class="form-select" id="current_type" name="current_type" required>
+<option value="">Choose assessment type</option>
+{% for type in assessment_types %}<option value="{{ type.pk }}" {% if fields.current_type == type.pk|stringformat:"s" %}selected{% endif %}>{{ type.name }}</option>{% endfor %}
+</select>
+</div>
+</div>
+
+<hr class="my-4">
+<h2 class="h5 mb-3">3. Select what to compare against</h2>
+<div class="row g-3">
+<div class="col-md-4">
+<label class="form-label" for="compare_year">Comparison academic year</label>
+<select class="form-select year-select" id="compare_year" name="compare_year" required>
+<option value="">Choose comparison year</option>
+{% for year in years %}<option value="{{ year.pk }}" {% if fields.compare_year == year.pk|stringformat:"s" %}selected{% endif %}>{{ year }}</option>{% endfor %}
+</select>
+</div>
+<div class="col-md-4">
+<label class="form-label" for="compare_term">Comparison term</label>
+<select class="form-select term-select" id="compare_term" name="compare_term" required>
+<option value="">Choose comparison term</option>
+{% for term in terms %}<option value="{{ term.pk }}" data-year="{{ term.academic_year_id }}" {% if fields.compare_term == term.pk|stringformat:"s" %}selected{% endif %}>{{ term }} ? {{ term.academic_year }}</option>{% endfor %}
+</select>
+</div>
+<div class="col-md-4">
+<label class="form-label" for="compare_type">Comparison assessment type</label>
+<select class="form-select" id="compare_type" name="compare_type" required>
+<option value="">Choose comparison assessment type</option>
+{% for type in assessment_types %}<option value="{{ type.pk }}" {% if fields.compare_type == type.pk|stringformat:"s" %}selected{% endif %}>{{ type.name }}</option>{% endfor %}
+</select>
+</div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap mt-4 no-print">
+<button class="btn btn-primary px-4" type="submit">Compare selected results</button>
+<a class="btn btn-outline-secondary" href="{% url 'academic:performance_comparison' %}">Clear selections</a>
+<button class="btn btn-outline-secondary" type="button" onclick="window.print()">Print</button>
+</div>
+</form>
+</div>
+</section>
+
+{% if submitted and result %}
+<section class="card panel mb-4">
+<div class="card-body p-4">
+<h2 class="h5">Comparison results</h2>
+<p class="text-muted">Current: <strong>{{ current_label }}</strong><br>Compared against: <strong>{{ compare_label }}</strong></p>
+<div class="row g-3">
+<div class="col-md-4"><div class="metric"><small>Current average</small><strong>{% if result.current_average != None %}{{ result.current_average|floatformat:2 }}%{% else %}No data{% endif %}</strong><div class="small text-muted">{{ result.current_marks_count }} recorded marks</div></div></div>
+<div class="col-md-4"><div class="metric"><small>Comparison average</small><strong>{% if result.compare_average != None %}{{ result.compare_average|floatformat:2 }}%{% else %}No data{% endif %}</strong><div class="small text-muted">{{ result.compare_marks_count }} recorded marks</div></div></div>
+<div class="col-md-4"><div class="metric"><small>Difference in percentage points</small><strong>{% if result.difference != None %}{% if result.difference > 0 %}+{% endif %}{{ result.difference|floatformat:2 }}{% else %}Unavailable{% endif %}</strong><div class="small text-muted">{% if result.difference != None %}Positive means the current selection is higher.{% else %}Both periods need recorded marks.{% endif %}</div></div></div>
+</div>
+<div class="small text-muted mt-3">Current learners with marks: {{ result.current_learners_count }} ? Comparison learners with marks: {{ result.compare_learners_count }}</div>
+</div>
+</section>
+
+<section class="card panel mb-4">
+<div class="card-body p-4">
+<h2 class="h5">Subject-by-subject comparison</h2>
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+<thead><tr><th>Subject</th><th>Current average</th><th>Comparison average</th><th>Difference (points)</th><th>Current marks</th><th>Comparison marks</th></tr></thead>
+<tbody>
+{% for row in subject_rows %}
+<tr>
+<td>{{ row.name }}</td>
+<td>{% if row.current_average != None %}{{ row.current_average|floatformat:2 }}%{% else %}<span class="text-muted">No data</span>{% endif %}</td>
+<td>{% if row.compare_average != None %}{{ row.compare_average|floatformat:2 }}%{% else %}<span class="text-muted">No data</span>{% endif %}</td>
+<td>{% if row.difference != None %}{% if row.difference > 0 %}+{% endif %}{{ row.difference|floatformat:2 }}{% else %}?{% endif %}</td>
+<td>{{ row.current_count }}</td><td>{{ row.compare_count }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="text-center text-muted py-4">No subject results are available for these selections.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+{% elif submitted and not errors %}
+<div class="alert alert-info">No comparison could be produced from these selections. Check whether marks have been recorded for both periods.</div>
+{% endif %}
+</main>
+
+<script>
+(function () {
+    const mode = document.getElementById("mode");
+    const form = document.getElementById("comparison-form");
+
+    function updateScope() {
+        const value = mode.value;
+        document.querySelectorAll(".scope-class").forEach(el => {
+            el.hidden = value !== "class";
+            el.querySelectorAll("input").forEach(input => {
+                input.required = value === "class";
+            });
+        });
+        document.querySelectorAll(".scope-learner").forEach(el => {
+            el.hidden = value !== "learner";
+            el.querySelectorAll("input").forEach(input => {
+                input.required = value === "learner";
+            });
+        });
+    }
+
+    function filterTerms(yearId, termSelect) {
+        Array.from(termSelect.options).forEach(option => {
+            if (!option.value) return;
+            const visible = !yearId || option.dataset.year === yearId;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (!visible && option.selected) termSelect.value = "";
+        });
+    }
+
+    document.getElementById("current_year").addEventListener("change", event => {
+        filterTerms(event.target.value, document.getElementById("current_term"));
+    });
+    document.getElementById("compare_year").addEventListener("change", event => {
+        filterTerms(event.target.value, document.getElementById("compare_term"));
+    });
+    mode.addEventListener("change", updateScope);
+
+    filterTerms(document.getElementById("current_year").value, document.getElementById("current_term"));
+    filterTerms(document.getElementById("compare_year").value, document.getElementById("compare_term"));
+    updateScope();
+})();
+</script>
+</body>
+</html>

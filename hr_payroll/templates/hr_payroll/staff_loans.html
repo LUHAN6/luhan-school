@@ -1,87 +1,470 @@
-{% extends "hr_payroll/staff_self_service_base.html" %}
-
-{% block title %}My Loans{% endblock %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-1">
-            <i class="bi bi-wallet2 text-primary me-2"></i>
-            My Loans
-        </h2>
-        <div class="text-muted">
-            View your staff loans and outstanding balances
+<style>
+.loan-page {
+    --loan-primary:#1d4ed8;
+    --loan-dark:#0f172a;
+    --loan-muted:#64748b;
+    --loan-border:#e2e8f0;
+    --loan-bg:#f8fafc;
+}
+
+.loan-page {
+    background:var(--loan-bg);
+    min-height:100vh;
+    padding:18px;
+}
+
+.loan-header {
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:white;
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+}
+
+.loan-header h1 {
+    font-size:20px;
+    font-weight:800;
+    margin:0;
+}
+
+.loan-header p {
+    margin:4px 0 0;
+    opacity:.75;
+    font-size:12px;
+}
+
+.loan-actions {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+
+.loan-btn {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:0;
+    border-radius:8px;
+    padding:8px 12px;
+    text-decoration:none;
+    font-size:12px;
+    font-weight:700;
+}
+
+.loan-btn-primary {
+    background:white;
+    color:#1d4ed8;
+}
+
+.loan-btn-dark {
+    background:#0f172a;
+    color:white;
+}
+
+.loan-stat {
+    background:white;
+    border:1px solid var(--loan-border);
+    border-radius:12px;
+    padding:14px;
+    height:100%;
+}
+
+.loan-stat-label {
+    color:var(--loan-muted);
+    font-size:10px;
+    text-transform:uppercase;
+    font-weight:800;
+    letter-spacing:.5px;
+}
+
+.loan-stat-value {
+    color:var(--loan-dark);
+    font-size:20px;
+    font-weight:800;
+    margin-top:3px;
+}
+
+.loan-stat-note {
+    color:var(--loan-muted);
+    font-size:10px;
+    margin-top:3px;
+}
+
+.loan-card {
+    background:white;
+    border:1px solid var(--loan-border);
+    border-radius:12px;
+    overflow:hidden;
+    margin-top:14px;
+}
+
+.loan-card-header {
+    padding:12px 14px;
+    border-bottom:1px solid var(--loan-border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.loan-card-title {
+    font-size:13px;
+    font-weight:800;
+    color:var(--loan-dark);
+}
+
+.loan-card-body {
+    padding:14px;
+}
+
+.loan-table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+}
+
+.loan-table th {
+    background:#f8fafc;
+    color:#64748b;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    padding:9px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+.loan-table td {
+    padding:10px 9px;
+    border-top:1px solid #eef2f7;
+    vertical-align:middle;
+}
+
+.loan-table tr:hover td {
+    background:#fafcff;
+}
+
+.loan-badge {
+    display:inline-flex;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:800;
+}
+
+.loan-badge-active { background:#dcfce7;color:#166534; }
+.loan-badge-pending { background:#fef3c7;color:#92400e; }
+.loan-badge-approved { background:#dbeafe;color:#1e40af; }
+.loan-badge-rejected { background:#fee2e2;color:#991b1b; }
+.loan-badge-completed { background:#e2e8f0;color:#475569; }
+.loan-badge-default { background:#f1f5f9;color:#475569; }
+
+.loan-empty {
+    text-align:center;
+    padding:28px 12px;
+    color:#64748b;
+}
+
+.loan-empty i {
+    font-size:28px;
+    opacity:.35;
+    display:block;
+    margin-bottom:8px;
+}
+
+.loan-mini {
+    font-size:10px;
+    color:#64748b;
+}
+
+@media(max-width:700px) {
+    .loan-page {
+        padding:10px;
+    }
+
+    .loan-header {
+        padding:15px;
+    }
+
+    .loan-header h1 {
+        font-size:18px;
+    }
+
+    .loan-table {
+        min-width:700px;
+    }
+
+    .loan-card-body.table-wrap {
+        overflow-x:auto;
+    }
+}
+</style>
+
+<div class="loan-page">
+
+    <div class="loan-header">
+
+        <div>
+            <h1>
+                <i class="bi bi-wallet2 me-1"></i>
+                My Loans
+            </h1>
+
+            <p>
+                View your loans, applications, repayments and outstanding balances.
+            </p>
         </div>
+
+        <div class="loan-actions">
+
+            <a href="{% url 'hr_payroll:staff_loan_apply' %}"
+               class="loan-btn loan-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Apply for Loan
+            </a>
+
+            <a href="{% url 'accounts:staff_dashboard' %}"
+               class="loan-btn loan-btn-dark">
+                <i class="bi bi-arrow-left"></i>
+                Dashboard
+            </a>
+
+        </div>
+
     </div>
-</div>
 
-<div class="row g-3 mb-4">
 
-    <div class="col-md-4">
-        <div class="card stat-card">
-            <div class="stat-label">Total Principal</div>
-            <div class="stat-value">
-                {{ total_principal|floatformat:2 }}
+    <!-- SUMMARY -->
+
+    <div class="row g-2">
+
+        <div class="col-6 col-lg-3">
+            <div class="loan-stat">
+                <div class="loan-stat-label">Total Borrowed</div>
+                <div class="loan-stat-value">
+                    {{ total_principal|floatformat:2 }}
+                </div>
+                <div class="loan-stat-note">
+                    All recorded loans
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card stat-card">
-            <div class="stat-label">Total Paid</div>
-            <div class="stat-value text-success">
-                {{ total_paid|floatformat:2 }}
+        <div class="col-6 col-lg-3">
+            <div class="loan-stat">
+                <div class="loan-stat-label">Total Paid</div>
+                <div class="loan-stat-value">
+                    {{ total_paid|floatformat:2 }}
+                </div>
+                <div class="loan-stat-note">
+                    Repayments recorded
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card stat-card">
-            <div class="stat-label">Outstanding Balance</div>
-            <div class="stat-value text-danger">
-                {{ outstanding_balance|floatformat:2 }}
+        <div class="col-6 col-lg-3">
+            <div class="loan-stat">
+                <div class="loan-stat-label">Outstanding</div>
+                <div class="loan-stat-value">
+                    {{ outstanding_balance|floatformat:2 }}
+                </div>
+                <div class="loan-stat-note">
+                    Active loan balance
+                </div>
             </div>
         </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="loan-stat">
+                <div class="loan-stat-label">Active Loans</div>
+                <div class="loan-stat-value">
+                    {{ active_loans|length }}
+                </div>
+                <div class="loan-stat-note">
+                    Currently running
+                </div>
+            </div>
+        </div>
+
     </div>
 
-</div>
 
-<div class="card">
-    <div class="card-body p-0">
+    <!-- APPLICATIONS -->
 
-        {% if loans %}
+    <div class="loan-card">
 
-        <div class="table-responsive">
+        <div class="loan-card-header">
 
-            <table class="table table-hover align-middle mb-0">
+            <div class="loan-card-title">
+                <i class="bi bi-file-earmark-text me-1"></i>
+                My Applications
+            </div>
+
+            <a href="{% url 'hr_payroll:staff_loan_apply' %}"
+               class="btn btn-sm btn-primary"
+               style="font-size:11px;">
+                New Application
+            </a>
+
+        </div>
+
+        <div class="loan-card-body table-wrap">
+
+            {% if applications %}
+
+            <table class="loan-table">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Application</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for application in applications %}
+
+                    <tr>
+
+                        <td>
+                            {{ application.created_at|date:"d M Y" }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                #{{ application.pk }}
+                            </strong>
+
+                            <div class="loan-mini">
+                                {{ application.loan_name|default:"Loan Application" }}
+                            </div>
+                        </td>
+
+                        <td>
+                            {{ application.requested_amount|default:application.amount|default:application.principal_amount|floatformat:2 }}
+                        </td>
+
+                        <td>
+
+                            {% if application.status == "SUBMITTED" or application.status == "UNDER_REVIEW" %}
+                                <span class="loan-badge loan-badge-pending">
+                                    {{ application.get_status_display }}
+                                </span>
+
+                            {% elif application.status == "APPROVED" or application.status == "DISBURSED" %}
+                                <span class="loan-badge loan-badge-approved">
+                                    {{ application.get_status_display }}
+                                </span>
+
+                            {% elif application.status == "REJECTED" %}
+                                <span class="loan-badge loan-badge-rejected">
+                                    Rejected
+                                </span>
+
+                            {% else %}
+                                <span class="loan-badge loan-badge-default">
+                                    {{ application.get_status_display }}
+                                </span>
+                            {% endif %}
+
+                        </td>
+
+                        <td class="text-end">
+
+                            <a href="{% url 'hr_payroll:staff_loan_application_detail' application.pk %}"
+                               class="btn btn-sm btn-outline-primary"
+                               style="font-size:10px;">
+                                View
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <div class="loan-empty">
+
+                <i class="bi bi-file-earmark-plus"></i>
+
+                <strong>No loan applications yet.</strong>
+
+                <div class="small mt-1 mb-3">
+                    Submit your first loan application when you are ready.
+                </div>
+
+                <a href="{% url 'hr_payroll:staff_loan_apply' %}"
+                   class="btn btn-primary btn-sm">
+                    Apply for Loan
+                </a>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ACTIVE LOANS -->
+
+    <div class="loan-card">
+
+        <div class="loan-card-header">
+
+            <div class="loan-card-title">
+                <i class="bi bi-wallet2 me-1"></i>
+                Active Loans
+            </div>
+
+            <span class="loan-mini">
+                Payroll deductions continue automatically.
+            </span>
+
+        </div>
+
+        <div class="loan-card-body table-wrap">
+
+            {% if active_loans %}
+
+            <table class="loan-table">
 
                 <thead>
                     <tr>
                         <th>Loan</th>
                         <th>Principal</th>
-                        <th>Installment</th>
+                        <th>Monthly</th>
                         <th>Paid</th>
                         <th>Balance</th>
-                        <th>Start Date</th>
+                        <th>Start</th>
                         <th>Status</th>
                     </tr>
                 </thead>
 
                 <tbody>
 
-                    {% for loan in loans %}
+                {% for loan in active_loans %}
 
                     <tr>
 
                         <td>
                             <strong>{{ loan.loan_name }}</strong>
-
-                            {% if loan.notes %}
-                                <div class="small text-muted">
-                                    {{ loan.notes }}
-                                </div>
-                            {% endif %}
                         </td>
 
                         <td>
@@ -96,8 +479,10 @@
                             {{ loan.amount_paid|floatformat:2 }}
                         </td>
 
-                        <td class="fw-bold">
-                            {{ loan.balance|floatformat:2 }}
+                        <td>
+                            <strong>
+                                {{ loan.balance|floatformat:2 }}
+                            </strong>
                         </td>
 
                         <td>
@@ -105,40 +490,122 @@
                         </td>
 
                         <td>
-                            {% if loan.status == "ACTIVE" %}
-                                <span class="badge bg-primary">Active</span>
-                            {% elif loan.status == "COMPLETED" %}
-                                <span class="badge bg-success">Completed</span>
-                            {% else %}
-                                <span class="badge bg-secondary">
-                                    {{ loan.status }}
-                                </span>
-                            {% endif %}
+                            <span class="loan-badge loan-badge-active">
+                                Active
+                            </span>
                         </td>
 
                     </tr>
 
-                    {% endfor %}
+                {% endfor %}
 
                 </tbody>
 
             </table>
 
+            {% else %}
+
+            <div class="loan-empty">
+
+                <i class="bi bi-wallet2"></i>
+
+                No active loans.
+
+            </div>
+
+            {% endif %}
+
         </div>
-
-        {% else %}
-
-        <div class="text-center py-5">
-            <i class="bi bi-wallet2 fs-1 text-muted"></i>
-            <h5 class="mt-3">No loans recorded</h5>
-            <p class="text-muted mb-0">
-                Your staff loans will appear here when recorded by HR.
-            </p>
-        </div>
-
-        {% endif %}
 
     </div>
+
+
+    <!-- ALL LOANS -->
+
+    <div class="loan-card">
+
+        <div class="loan-card-header">
+
+            <div class="loan-card-title">
+                <i class="bi bi-clock-history me-1"></i>
+                Loan History
+            </div>
+
+        </div>
+
+        <div class="loan-card-body table-wrap">
+
+            {% if loans %}
+
+            <table class="loan-table">
+
+                <thead>
+                    <tr>
+                        <th>Loan</th>
+                        <th>Principal</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Start</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for loan in loans %}
+
+                    <tr>
+
+                        <td>{{ loan.loan_name }}</td>
+
+                        <td>{{ loan.principal_amount|floatformat:2 }}</td>
+
+                        <td>{{ loan.amount_paid|floatformat:2 }}</td>
+
+                        <td>{{ loan.balance|floatformat:2 }}</td>
+
+                        <td>
+
+                            {% if loan.status == "ACTIVE" %}
+                                <span class="loan-badge loan-badge-active">
+                                    Active
+                                </span>
+                            {% elif loan.status == "COMPLETED" %}
+                                <span class="loan-badge loan-badge-completed">
+                                    Completed
+                                </span>
+                            {% else %}
+                                <span class="loan-badge loan-badge-default">
+                                    {{ loan.status }}
+                                </span>
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            {{ loan.start_date|date:"d M Y" }}
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <div class="loan-empty">
+                No loan history available.
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
 </div>
 
 {% endblock %}

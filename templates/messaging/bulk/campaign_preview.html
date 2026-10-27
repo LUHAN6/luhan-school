@@ -1,0 +1,89 @@
+{% extends "messaging/bulk/base.html" %}
+{% block title %}Preview: {{ campaign.name }}{% endblock %}
+{% block heading %}Review campaign{% endblock %}
+{% block subtitle %}Confirm the message, recipient eligibility, and action before proceeding.{% endblock %}
+{% block content %}
+{% if live_sending_enabled %}
+<div class="alert alert-warning">
+  <strong>Review before proceeding.</strong> Saving this preview does not send messages. Dispatch remains subject to the provider configuration and safety controls.
+</div>
+{% else %}
+<div class="alert alert-danger" role="alert">
+  <strong>Live messaging is disabled.</strong> Sending, retrying, and scheduling are blocked. Reviewing this page does not send messages or change campaign records.
+</div>
+{% endif %}
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between gap-3 flex-wrap">
+    <div>
+      <h5 class="mb-2">{{ campaign.name }}</h5>
+      <div class="mb-2"><span class="badge-status status-{{ campaign.status }}">{{ campaign.get_status_display }}</span> <span class="badge text-bg-light border">{{ campaign.get_channel_display }}</span></div>
+      <div class="small text-secondary">Selected active, non-opted-out contacts: <strong>{{ contact_count }}</strong></div>
+      {% if campaign.scheduled_at %}<div class="small text-secondary mt-1">Requested schedule: {{ campaign.scheduled_at|date:"d M Y, H:i" }}</div>{% endif %}
+    </div>
+    <a class="btn btn-outline-secondary align-self-start" href="{% url 'messaging:bulk_campaign_detail' campaign.pk %}">Back to campaign</a>
+  </div>
+  <hr>
+  <div class="small text-secondary mb-2">Subject</div>
+  <div class="fw-semibold mb-3">{{ campaign.subject|default:"(No email subject)" }}</div>
+  <div class="small text-secondary mb-2">Message</div>
+  <div class="message-preview">{{ campaign.message|linebreaksbr }}</div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for item in stats %}
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 h-100">
+      <h5>{{ item.label }} eligibility</h5>
+      <div class="fs-3 fw-bold text-success">{{ item.ready }}</div>
+      <div class="small text-secondary mb-3">Destinations with consent recorded and a destination present</div>
+      <div class="small">Missing destination: <strong>{{ item.missing_destination }}</strong></div>
+      <div class="small">Consent not recorded (destination present): <strong>{{ item.missing_consent }}</strong></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card mb-4">
+  <div class="p-4">
+    <h5 class="mb-1">Recipient sample</h5>
+    <div class="small text-secondary">Showing up to {{ preview_limit }} selected contacts, expanded by campaign channel. The counts above cover the full selected set. Contacts who are inactive or opted out are excluded from this sample.</div>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Contact</th><th>Channel</th><th>Destination</th><th>Eligibility</th></tr></thead>
+      <tbody>
+      {% for row in preview_rows %}
+        <tr>
+          <td>{{ row.name }}</td><td>{{ row.channel }}</td><td>{{ row.destination }}</td>
+          <td>{% if row.ready %}<span class="badge text-bg-success">{{ row.status }}</span>{% else %}<span class="badge text-bg-warning">{{ row.status }}</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center p-4">No active, non-opted-out contacts match this campaign's audience.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card p-4">
+  <h5>Confirm next action</h5>
+  {% if live_sending_enabled %}
+    <p class="small text-secondary">Each action below is a separate POST request. The server checks the live-send safety gate again before acting.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if campaign.status == 'draft' or campaign.status == 'scheduled' %}
+        <form method="post">{% csrf_token %}<button class="btn btn-primary" name="action" value="send" type="submit" onclick="return confirm('Confirm a send attempt for this campaign?')">Confirm &amp; attempt send</button></form>
+        {% if campaign.scheduled_at %}
+          <form method="post">{% csrf_token %}<button class="btn btn-outline-primary" name="action" value="schedule" type="submit" onclick="return confirm('Confirm scheduling this campaign?')">Confirm schedule</button></form>
+        {% endif %}
+      {% endif %}
+      {% if campaign.failed_count %}
+        <form method="post">{% csrf_token %}<button class="btn btn-outline-warning" name="action" value="retry_failed" type="submit" onclick="return confirm('Retry failed messages only?')">Retry failed messages</button></form>
+      {% endif %}
+      <a class="btn btn-light" href="{% url 'messaging:bulk_campaign_detail' campaign.pk %}">Cancel / return</a>
+    </div>
+  {% else %}
+    <p class="text-danger mb-2">Dispatch controls are unavailable because live messaging is disabled.</p>
+    <a class="btn btn-light" href="{% url 'messaging:bulk_campaign_detail' campaign.pk %}">Return to campaign</a>
+  {% endif %}
+</div>
+{% endblock %}

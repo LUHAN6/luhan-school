@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Transport Management{% endblock %} | Luhan School ERP</title>
+<style>
+:root{--navy:#123a78;--blue:#1d4ed8;--gold:#eab308;--ink:#172033;--muted:#64748b;--line:#e2e8f0;--bg:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:linear-gradient(110deg,#102f62,#1d4ed8);color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-size:19px;font-weight:800;letter-spacing:.2px}.brand small{display:block;font-size:11px;font-weight:500;opacity:.85}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px 24px;background:white;border-bottom:1px solid var(--line)}
+nav a,.btn{color:#173c78;text-decoration:none;font-weight:650;padding:8px 11px;border-radius:8px;background:#edf4ff;border:0;cursor:pointer;display:inline-block}
+main{max-width:1400px;margin:24px auto;padding:0 20px}.pagehead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:25px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.card{background:white;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 7px #12264b08;margin-bottom:16px}
+.metric{font-size:30px;font-weight:800;color:var(--navy)}.metric-label{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#52617a;background:#f8fafc}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.form-control,input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:white}.form-check-input{width:auto}
+form p{margin:0 0 14px}label{font-weight:650;display:block;margin-bottom:5px}.helptext{font-size:12px;color:var(--muted)}.errorlist{color:#b91c1c}
+.messages{list-style:none;padding:0}.messages li{background:#fff7d6;border:1px solid #f5d66b;padding:10px 13px;border-radius:8px;margin-bottom:8px}
+.badge{display:inline-block;border-radius:99px;padding:3px 9px;font-size:12px;background:#e2e8f0}.good{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}
+.actions{display:flex;gap:7px;flex-wrap:wrap}.primary{background:var(--blue);color:white}.footer{color:var(--muted);font-size:12px;padding:20px;text-align:center}
+@media(max-width:650px){main{padding:0 10px;margin:14px auto}header{padding:14px}nav{padding:9px}.card{padding:13px}th,td{padding:9px}}
+</style>
+</head>
+<body>
+<header><div class="brand">LUHAN SCHOOL ERP <small>Transport Operations & Safety</small></div><div>{{ request.user.get_username }} · <a style="color:white" href="/">Main ERP</a></div></header>
+<nav>
+<a href="{% url 'transport_pro:dashboard' %}">Dashboard</a>
+<a href="{% url 'transport_pro:list' 'vehicles' %}">Vehicles</a>
+<a href="{% url 'transport_pro:list' 'staff' %}">Drivers & Attendants</a>
+<a href="{% url 'transport_pro:list' 'routes' %}">Routes</a>
+<a href="{% url 'transport_pro:list' 'stops' %}">Stops</a>
+<a href="{% url 'transport_pro:list' 'learners' %}">Learners</a>
+<a href="{% url 'transport_pro:list' 'trips' %}">Trips</a>
+<a href="{% url 'transport_pro:list' 'boarding' %}">Boarding</a>
+<a href="{% url 'transport_pro:list' 'maintenance' %}">Maintenance</a>
+<a href="{% url 'transport_pro:list' 'incidents' %}">Incidents</a>
+<a href="{% url 'transport_pro:list' 'charges' %}">Charges</a>
+<a href="{% url 'transport_pro:list' 'payments' %}">Payments</a>
+<a href="{% url 'transport_pro:reports' %}">Reports</a>
+</nav>
+<main>
+{% if messages %}<ul class="messages">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+{% block content %}{% endblock %}
+</main>
+<div class="footer">Transport Management Suite · Protect learner data and follow school safeguarding procedures.</div>
+</body></html>

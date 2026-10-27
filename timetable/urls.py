@@ -1,4 +1,4 @@
-
+﻿
 from django.urls import path
 from . import views
 
@@ -35,7 +35,7 @@ urlpatterns = [
         views.timetable_requirement_toggle,
         name="requirement_toggle",
     ),
-    path("requirements/", views.requirement_builder, name="requirements"),
+    path("requirements/", views.timetable_requirements_builder, name="requirements"),
     path("availability/", views.availability, name="availability"),
 
     path("workspace/", views.workspace, name="workspace"),
@@ -103,3 +103,4 @@ urlpatterns = [
         name="timetable_lesson_delete",
     ),
 ]
+

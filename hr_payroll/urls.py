@@ -1,4 +1,4 @@
-from django.urls import path
+﻿from django.urls import path
 from . import views
 
 
@@ -221,7 +221,16 @@ urlpatterns = [
         views.allowance_deactivate,
         name="allowance_deactivate",
     ),
-
+    path(
+        "statutory-deductions/<str:category>/<int:pk>/toggle/",
+        views.statutory_deduction_toggle,
+        name="statutory_deduction_toggle",
+    ),
+path(
+        "statutory-deductions/",
+        views.statutory_deductions,
+        name="statutory_deductions",
+    ),
     # Statutory Payroll Rules
     path(
         "paye-tax-bands/",
@@ -286,15 +295,14 @@ urlpatterns = [
         views.deduction_type_edit,
         name="deduction_type_edit",
     ),
-
-    # Deductions
     path(
-        "deductions/",
-        views.deduction_list,
-        name="deduction_list",
+        "deduction-types/<int:pk>/delete/",
+        views.deduction_type_delete,
+        name="deduction_type_delete",
     ),
 
-    path(
+    # Deductions
+path(
         "deductions/add/",
         views.deduction_add,
         name="deduction_add",
@@ -348,6 +356,11 @@ urlpatterns = [
         "payroll/periods/add/",
         views.payroll_period_add,
         name="payroll_period_add",
+    ),
+    path(
+        "payroll/periods/<int:pk>/delete/",
+        views.payroll_period_delete,
+        name="payroll_period_delete",
     ),
 
     path(
@@ -513,7 +526,67 @@ urlpatterns = [
         views.hr_reports,
         name="hr_reports",
     ),
+
+    # =========================================================
+    # STAFF LOAN APPLICATIONS
+    # =========================================================
+    path(
+        "staff/loans/apply/",
+        views.staff_loan_apply,
+        name="staff_loan_apply",
+    ),
+
+    path(
+        "staff/loans/application/<int:pk>/",
+        views.staff_loan_application_detail,
+        name="staff_loan_application_detail",
+    ),
+
+    # =========================================================
+    # ADMIN LOAN APPLICATIONS
+    # =========================================================
+    path(
+        "loans/applications/",
+        views.loan_applications,
+        name="loan_applications",
+    ),
+
+    path(
+        "loans/applications/<int:pk>/",
+        views.loan_application_detail,
+        name="loan_application_detail",
+    ),
+
+    path(
+        "loans/applications/<int:pk>/approve/",
+        views.loan_application_approve,
+        name="loan_application_approve",
+    ),
+
+    path(
+        "loans/applications/<int:pk>/reject/",
+        views.loan_application_reject,
+        name="loan_application_reject",
+    ),
+
+    path(
+        "loans/applications/<int:pk>/disburse/",
+        views.loan_application_disburse,
+        name="loan_application_disburse",
+    ),
+
 ]
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -893,6 +893,11 @@
                             <option value="grade">
                                 Grade / Class
                             </option>
+{% if is_admin %}
+                            <option value="staff">All Staff</option>
+                            <option value="everyone">All (Everyone)</option>
+{% endif %}
+
 
                             {% endif %}
 
@@ -1125,6 +1130,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const selectedRecipient =
         document.getElementById("selected-recipient");
+
+    // AUDIENCE_REPAIR_20261018: initialise the form from the selected dashboard card.
+    const audienceParam = new URLSearchParams(window.location.search).get("audience");
+    const audienceToGroup = {
+        parents: "parents",
+        students: "students",
+        staff: "staff",
+        everyone: "everyone"
+    };
+
+    if (audienceParam === "individual") {
+        recipientType.value = "individual";
+    } else if (audienceToGroup[audienceParam]) {
+        const wantedGroup = audienceToGroup[audienceParam];
+        const groupOptionExists = Array.from(groupType.options).some(
+            option => option.value === wantedGroup
+        );
+
+        if (groupOptionExists) {
+            recipientType.value = "group";
+            groupType.value = wantedGroup;
+        }
+    }
+
 
 
     function updateRecipientSections() {

@@ -2,11 +2,13 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("transport-fee-quote/", views.transport_fee_quote, name="transport_fee_quote"),
+
     path("application-status/", views.application_status, name="application_status"),
     path("apply-online/", views.online_application_form, name="online_application_form"),
     path("online-applications/", views.online_applications, name="online_applications"),
     path("online-applications/<int:id>/", views.online_application_detail, name="online_application_detail"),
-    path("online-applications/<int:id>/admit/", views.admit_online_application, name="admit_online_application"),
+    path("online-applications/<int:application_id>/admit/", views.admit_online_application, name="admit_online_application"),
     path("online-applications/<int:id>/reject/", views.reject_online_application, name="reject_online_application"),
 
     path("", views.student_management, name="student_management"),

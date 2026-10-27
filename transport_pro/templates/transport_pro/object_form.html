@@ -1,0 +1,133 @@
+{% extends "transport_pro/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <div>
+    <h1>{{ title }}</h1>
+    <div class="muted">Fields marked required must be completed.</div>
+  </div>
+  <a class="btn" href="{% url 'transport_pro:list' kind %}">Back to list</a>
+</div>
+
+<div class="card" style="max-width:900px">
+  <form method="post" novalidate id="transport-object-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <p>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if kind == "staff" and not object and field.name == "employee_number" %}
+          <button class="btn" type="button" id="load-employee-details">
+            Load Employee Details
+          </button>
+          <span id="employee-lookup-status" role="status" aria-live="polite"
+                style="display:block;margin-top:8px;padding:10px;border-radius:6px;background:#eef4ff;color:#173b70">
+            Enter the HR employee number, then select Load Employee Details.
+          </span>
+        {% endif %}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {{ field.errors }}
+      </p>
+    {% endfor %}
+    <button class="btn primary" type="submit">Save record</button>
+  </form>
+</div>
+
+{% if kind == "staff" and not object %}
+<script>
+(function () {
+  const number = document.getElementById("id_employee_number");
+  const name = document.getElementById("id_full_name");
+  const phone = document.getElementById("id_phone");
+  const emergency = document.getElementById("id_emergency_contact");
+  const button = document.getElementById("load-employee-details");
+  const status = document.getElementById("employee-lookup-status");
+  const form = document.getElementById("transport-object-form");
+
+  if (!number || !name || !phone || !emergency || !button || !status) return;
+
+  let requestToken = 0;
+  let verifiedNumber = "";
+
+  async function lookup() {
+    const value = number.value.trim();
+    const token = ++requestToken;
+    verifiedNumber = "";
+
+    if (!value) {
+      status.textContent = "Enter an HR employee number first.";
+      return false;
+    }
+
+    button.disabled = true;
+    status.textContent = "Loading employee details…";
+
+    try {
+      const url = "{% url 'transport_pro:employee_lookup' %}" +
+        "?employee_number=" + encodeURIComponent(value);
+
+      const response = await fetch(url, {
+        headers: {"X-Requested-With": "XMLHttpRequest"},
+        credentials: "same-origin"
+      });
+
+      const data = await response.json();
+      if (token !== requestToken) return false;
+
+      if (!response.ok || !data.ok) {
+        name.value = "";
+        phone.value = "";
+        emergency.value = "";
+        status.textContent = data.message || "Employee lookup failed.";
+        return false;
+      }
+
+      name.value = data.full_name || "";
+      phone.value = data.phone || "";
+      emergency.value = data.emergency_contact || "";
+      verifiedNumber = value;
+
+      status.textContent = "Verified support employee: " +
+        (data.full_name || value) + " — " +
+        (data.department || data.position || "Support staff");
+      return true;
+    } catch (error) {
+      if (token === requestToken) {
+        status.textContent = "Could not reach the HR lookup. Check your connection and try again.";
+        name.value = "";
+        phone.value = "";
+        emergency.value = "";
+      }
+      return false;
+    } finally {
+      if (token === requestToken) button.disabled = false;
+    }
+  }
+
+  button.addEventListener("click", lookup);
+
+  number.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      lookup();
+    }
+  });
+
+  number.addEventListener("input", function () {
+    verifiedNumber = "";
+  });
+
+  if (form) {
+    form.addEventListener("submit", function (event) {
+      if (number.value.trim() !== verifiedNumber) {
+        event.preventDefault();
+        status.textContent = "Load and verify the employee details before saving.";
+        number.focus();
+      }
+    });
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

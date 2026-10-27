@@ -1,184 +1,27 @@
-{% extends "base.html" %}
-
+﻿{% extends "base.html" %}
 {% block content %}
-
-<div class="container py-5">
-
-    <div class="row justify-content-center">
-        <div class="col-lg-9">
-
-            <div class="text-center mb-4">
-                <h2 class="fw-bold">Online Admission Application</h2>
-                <p class="text-muted">
-                    Complete the form below to apply for admission.
-                </p>
-            </div>
-
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4 p-md-5">
-
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
-                        </div>
-                    {% endif %}
-
-                    <form method="post">
-                        {% csrf_token %}
-
-                        <h5 class="fw-bold mb-3">
-                            Learner Information
-                        </h5>
-
-                        <div class="row g-3">
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    First Name *
-                                </label>
-                                {{ form.first_name }}
-                                {{ form.first_name.errors }}
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    Middle Name
-                                </label>
-                                {{ form.middle_name }}
-                                {{ form.middle_name.errors }}
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
-                                    Last Name *
-                                </label>
-                                {{ form.last_name }}
-                                {{ form.last_name.errors }}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Gender *
-                                </label>
-                                {{ form.gender }}
-                                {{ form.gender.errors }}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Date of Birth *
-                                </label>
-                                {{ form.date_of_birth }}
-                                {{ form.date_of_birth.errors }}
-                            </div>
-
-                        </div>
-
-                        <hr class="my-4">
-
-                        <h5 class="fw-bold mb-3">
-                            Admission Details
-                        </h5>
-
-                        <div class="row g-3">
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Class Applying For *
-                                </label>
-                                {{ form.requested_class }}
-                                {{ form.requested_class.errors }}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Stream
-                                </label>
-                                {{ form.requested_stream }}
-                                {{ form.requested_stream.errors }}
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">
-                                    Previous School
-                                </label>
-                                {{ form.previous_school }}
-                                {{ form.previous_school.errors }}
-                            </div>
-
-                        </div>
-
-                        <hr class="my-4">
-
-                        <h5 class="fw-bold mb-3">
-                            Parent / Guardian Information
-                        </h5>
-
-                        <div class="row g-3">
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Parent / Guardian Name *
-                                </label>
-                                {{ form.parent_name }}
-                                {{ form.parent_name.errors }}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Phone Number *
-                                </label>
-                                {{ form.parent_phone }}
-                                {{ form.parent_phone.errors }}
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Email Address
-                                </label>
-                                {{ form.parent_email }}
-                                {{ form.parent_email.errors }}
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">
-                                    Physical / Postal Address
-                                </label>
-                                {{ form.address }}
-                                {{ form.address.errors }}
-                            </div>
-
-                        </div>
-
-                        <div class="alert alert-info mt-4">
-                            <strong>Important:</strong>
-                            After submitting this application, the school
-                            administration will review your application
-                            before admission is confirmed.
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mt-4">
-
-                            <a href="{% url 'login' %}"
-                               class="btn btn-outline-secondary">
-                                Back to Login
-                            </a>
-
-                            <button type="submit"
-                                    class="btn btn-primary px-4">
-                                Submit Application
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-</div>
-
+<style>
+.oa{max-width:1080px;margin:22px auto;padding:0 14px}.card{background:#fff;border:1px solid #e5e9f0;border-radius:18px;padding:22px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;box-sizing:border-box;border:1px solid #d8dee8;border-radius:10px;padding:10px}.full{grid-column:1/-1}.transport{margin-top:18px;padding:16px;border:1px solid #dbe5f3;border-radius:14px;background:#f7faff}.tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.price{margin-top:12px;padding:12px;border-radius:10px;background:#102d63;color:#fff;font-weight:800}.btn{margin-top:18px;border:0;border-radius:10px;padding:11px 16px;background:#173f7a;color:#fff;font-weight:800}@media(max-width:720px){.grid,.tgrid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+<div class="oa"><div class="card"><h1>Learner Application</h1><p>Complete learner, parent and optional transport details.</p>
+<form method="post">{% csrf_token %}{% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+<div class="grid">{% for field in form %}{% if field.name != "transport_required" and field.name != "transport_route" and field.name != "transport_from_stop" and field.name != "transport_to_stop" %}<div class="field {% if field.name == 'address' %}full{% endif %}"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<small>{{ field.errors|striptags }}</small>{% endif %}</div>{% endif %}{% endfor %}</div>
+<div class="transport"><strong>School Transport</strong><label style="display:flex;gap:8px;align-items:center;margin-top:10px">{{ form.transport_required }} I need school transport</label>
+<div id="transportBox" style="display:none"><div class="tgrid"><div class="field"><label>{{ form.transport_route.label }}</label>{{ form.transport_route }}</div><div class="field"><label>{{ form.transport_from_stop.label }}</label>{{ form.transport_from_stop }}</div><div class="field"><label>{{ form.transport_to_stop.label }}</label>{{ form.transport_to_stop }}</div></div><div id="transportPrice" class="price">Transport fee: â€”</div><div id="transportMessage"></div></div></div>
+<button class="btn" type="submit">Submit Application</button></form></div></div>
+<script>
+(function(){
+ const need=document.getElementById('id_transport_required'), box=document.getElementById('transportBox'), route=document.getElementById('id_transport_route'), from=document.getElementById('id_transport_from_stop'), to=document.getElementById('id_transport_to_stop'), price=document.getElementById('transportPrice'), msg=document.getElementById('transportMessage');
+ const cls=document.getElementById('id_requested_class');
+ const year='{{ active_academic_year.id|default:"" }}', term='{{ active_term.id|default:"" }}';
+ function toggle(){box.style.display=need && need.checked?'block':'none';}
+ function quote(){
+   if(!need || !need.checked || !route.value || !from.value || !to.value || !cls || !cls.value) return;
+   const q=new URLSearchParams({class_name:cls.value,route_id:route.value,from_stop_id:from.value,to_stop_id:to.value,year_id:year,term_id:term});
+   fetch('{% url "transport_fee_quote" %}?'+q).then(r=>r.json()).then(d=>{price.textContent=d.ok?'Transport fee: KES '+d.amount:'Transport fee: â€”';msg.textContent=d.message||'';});
+ }
+ if(need) need.addEventListener('change',toggle); [route,from,to,cls].forEach(x=>x&&x.addEventListener('change',quote)); toggle();
+})();
+</script>
 {% endblock %}
+

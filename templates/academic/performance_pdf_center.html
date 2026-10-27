@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Academic Performance PDF{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+      <h3 class="mb-1">Academic Performance Comparison</h3>
+      <p class="text-muted mb-0">
+        Choose both assessment periods. The system will not select periods automatically.
+      </p>
+    </div>
+
+    <div class="card-body">
+      <form method="get" action="{% url 'academic:performance_comparison_pdf' %}"
+            target="_blank" class="row g-3">
+
+        <div class="col-12 col-md-4">
+          <label for="scope" class="form-label fw-semibold">Report scope</label>
+          <select id="scope" name="scope" class="form-select" required>
+            <option value="class" selected>Class / Stream</option>
+            {% if is_admin %}
+            <option value="school">Whole School</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4" id="class-wrap">
+          <label for="class_name" class="form-label fw-semibold">Class</label>
+          <select id="class_name" name="class_name" class="form-select">
+            <option value="">Select class</option>
+            {% for item in classes %}
+            <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+          </select>
+          {% if not classes %}
+          <div class="form-text text-warning">
+            No classes found among active students.
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12 col-md-4" id="stream-wrap">
+          <label for="stream_name" class="form-label fw-semibold">Stream</label>
+          <select id="stream_name" name="stream_name" class="form-select">
+            <option value="">Select stream</option>
+            {% if is_admin %}
+            <option value="__ALL__">All streams</option>
+            {% endif %}
+            {% for stream in streams %}
+            <option value="{{ stream.name }}">{{ stream.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Only streams marked active in admin are listed.</div>
+        </div>
+
+        <div class="col-12"><hr><h5>Selected assessment</h5></div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="current_year">Academic year</label>
+          <select id="current_year" name="current_year" class="form-select" required>
+            <option value="">Choose year</option>
+            {% for year in years %}
+            <option value="{{ year.pk }}">{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="current_term">Term</label>
+          <select id="current_term" name="current_term" class="form-select" required>
+            <option value="">Choose term</option>
+            {% for term in terms %}
+            <option value="{{ term.pk }}">{{ term.name }} — {{ term.academic_year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="current_type">Assessment type</label>
+          <select id="current_type" name="current_type" class="form-select" required>
+            <option value="">Choose assessment type</option>
+            {% for item in assessment_types %}
+            <option value="{{ item.pk }}">{{ item.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12"><hr><h5>Compare against</h5></div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="compare_year">Academic year</label>
+          <select id="compare_year" name="compare_year" class="form-select" required>
+            <option value="">Choose comparison year</option>
+            {% for year in years %}
+            <option value="{{ year.pk }}">{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="compare_term">Term</label>
+          <select id="compare_term" name="compare_term" class="form-select" required>
+            <option value="">Choose comparison term</option>
+            {% for term in terms %}
+            <option value="{{ term.pk }}">{{ term.name }} — {{ term.academic_year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label fw-semibold" for="compare_type">Assessment type</label>
+          <select id="compare_type" name="compare_type" class="form-select" required>
+            <option value="">Choose comparison assessment type</option>
+            {% for item in assessment_types %}
+            <option value="{{ item.pk }}">{{ item.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 d-flex flex-wrap gap-2 pt-2">
+          <button type="submit" class="btn btn-primary px-4">
+            Download PDF
+          </button>
+          <button type="reset" class="btn btn-outline-secondary">
+            Clear selections
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const scope = document.getElementById("scope");
+  const classWrap = document.getElementById("class-wrap");
+  const streamWrap = document.getElementById("stream-wrap");
+  const classSelect = document.getElementById("class_name");
+  const streamSelect = document.getElementById("stream_name");
+
+  function updateScope() {
+    const school = scope.value === "school";
+    classWrap.style.display = school ? "none" : "";
+    streamWrap.style.display = school ? "none" : "";
+    classSelect.required = !school;
+    {% if is_admin %}
+    streamSelect.required = false;
+    {% else %}
+    streamSelect.required = !school;
+    {% endif %}
+  }
+
+  scope.addEventListener("change", updateScope);
+  updateScope();
+})();
+</script>
+{% endblock %}

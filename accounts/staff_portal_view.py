@@ -16,13 +16,6 @@ from hr_payroll.models import (
     LeaveApplication,
 )
 
-from timetable.legacy_compat import (
-    Teacher,
-    TeacherSubject,
-    TeacherClassAssignment,
-    TeacherTeachingAssignment,
-)
-
 from .models import UserProfile, SchoolBranding
 
 
@@ -239,7 +232,7 @@ def staff_dashboard(request):
 
     teacher = getattr(
         employee,
-        "scheduling_teacher",
+        "timetable_teacher",
         None,
     )
 
@@ -249,7 +242,7 @@ def staff_dashboard(request):
 
     if teacher:
         teacher_subjects = (
-            teacher.subject_assignments
+            teacher.teacher_subject_links
             .filter(is_active=True)
             .select_related("subject")
             .order_by("subject__name")
@@ -337,4 +330,6 @@ def staff_dashboard(request):
         "accounts/staff_dashboard.html",
         context,
     )
+
+
 

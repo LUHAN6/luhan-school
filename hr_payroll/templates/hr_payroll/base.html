@@ -566,7 +566,195 @@
             }
         }
     </style>
-</head>
+<style id="luhan-hr-royal-sidebar">
+
+/* ============================================================
+   LUHAN HR — ROYAL BLUE SIDEBAR
+   ============================================================ */
+
+.sidebar {
+    background: linear-gradient(
+        180deg,
+        #1e40af 0%,
+        #1d4ed8 52%,
+        #1e3a8a 100%
+    ) !important;
+
+    color: #fff !important;
+    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
+
+    padding: 16px 10px !important;
+
+    border-right: 1px solid rgba(255,255,255,.12);
+    box-shadow: 4px 0 18px rgba(15,23,42,.16);
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.28) transparent;
+}
+
+/* Brand */
+
+.sidebar .brand {
+    color: #fff !important;
+    padding: 7px 10px 15px !important;
+    margin-bottom: 10px;
+
+    border-bottom: 1px solid rgba(255,255,255,.15);
+}
+
+.sidebar .brand a,
+.sidebar .brand strong,
+.sidebar .brand span {
+    color: #fff !important;
+}
+
+/* Section headings */
+
+.sidebar .nav-section-label,
+.sidebar .section-title {
+    color: rgba(255,255,255,.60) !important;
+
+    font-size: 9px !important;
+    font-weight: 800 !important;
+
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+
+    margin: 16px 9px 6px !important;
+}
+
+/* Navigation */
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+
+    min-height: 38px;
+
+    padding: 7px 10px !important;
+    margin: 2px 0;
+
+    border-radius: 8px;
+
+    color: rgba(255,255,255,.91) !important;
+
+    font-size: 12.5px !important;
+    font-weight: 500;
+
+    gap: 8px;
+
+    transition:
+        background .15s ease,
+        color .15s ease,
+        transform .15s ease;
+}
+
+/* Icons */
+
+.sidebar .nav-link i,
+.sidebar .nav-link .bi {
+    width: 18px;
+    min-width: 18px;
+
+    text-align: center;
+
+    color: rgba(255,255,255,.88) !important;
+
+    font-size: 14px !important;
+}
+
+/* Hover */
+
+.sidebar .nav-link:hover {
+    color: #fff !important;
+
+    background: rgba(255,255,255,.13) !important;
+
+    transform: translateX(2px);
+}
+
+/* Active */
+
+.sidebar .nav-link.active,
+.sidebar .nav-link[aria-current="page"] {
+    background: #fff !important;
+
+    color: #1d4ed8 !important;
+
+    font-weight: 700 !important;
+
+    box-shadow:
+        0 3px 10px rgba(0,0,0,.13);
+}
+
+.sidebar .nav-link.active i,
+.sidebar .nav-link[aria-current="page"] i {
+    color: #1d4ed8 !important;
+}
+
+/* Separators */
+
+.sidebar hr {
+    border-color: rgba(255,255,255,.15) !important;
+    opacity: 1 !important;
+
+    margin: 12px 6px !important;
+}
+
+/* Badges */
+
+.sidebar .badge {
+    margin-left: auto;
+
+    font-size: 8px !important;
+    padding: 3px 6px !important;
+}
+
+/* Scrollbar */
+
+.sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.25);
+    border-radius: 20px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,.40);
+}
+
+/* Logout */
+
+.sidebar a[href*="logout"] {
+    color: #fff !important;
+}
+
+.sidebar a[href*="logout"]:hover {
+    background: rgba(220,38,38,.22) !important;
+}
+
+/* Mobile */
+
+@media (max-width: 991.98px) {
+
+    .sidebar {
+        height: auto;
+        min-height: auto;
+        box-shadow: 0 3px 12px rgba(15,23,42,.14);
+    }
+
+}
+
+</style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">`r`n</head>
 
 <body>
 
@@ -647,7 +835,8 @@
             <span class="nav-icon">&#128188;</span>
             Payroll
         </a>
-        {% endif %}
+
+{% endif %}
 
         {% if erp_permission.view_payslip %}
         <a href="{% url 'hr_payroll:payslip_list' %}" class="nav-link">
@@ -675,10 +864,7 @@
         {% endif %}
 
         {% if erp_permission.view_employeededuction %}
-        <a href="{% url 'hr_payroll:deduction_list' %}" class="nav-link">
-            <span class="nav-icon">&#8226;</span>
-            Deductions
-        </a>
+        
         {% endif %}
 
         <a href="{% url 'hr_payroll:allowance_list' %}" class="nav-link">
@@ -686,15 +872,12 @@
             Employee Allowances
         </a>
 
-        <a href="{% url 'hr_payroll:deduction_list' %}" class="nav-link">
+        <a href="{% url 'hr_payroll:statutory_deductions' %}" class="nav-link">
             <span class="nav-icon">&#128101;</span>
             Employee Deductions
         </a>
 
-        <a href="{% url 'hr_payroll:payroll_list' %}" class="nav-link">
-            <span class="nav-icon">&#128188;</span>
-            Payroll Periods
-        </a>
+        <a href="{% url 'hr_payroll:payroll_list' %}" class="nav-link"><i class="bi bi-calendar3 me-2"></i>Manage Payroll Periods</a>
 
         <div class="nav-section">
             Administration
@@ -802,3 +985,6 @@
 
 </body>
 </html>
+
+
+

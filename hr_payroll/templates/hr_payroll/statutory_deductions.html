@@ -1,0 +1,616 @@
+﻿{% extends "hr_payroll/base.html" %}
+
+{% block content %}
+
+<style>
+.stat-wrap{
+    max-width:1200px;
+    margin:0 auto;
+    padding:12px;
+}
+
+.stat-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px 18px;
+    margin-bottom:12px;
+    border-radius:12px;
+    color:#fff;
+    background:linear-gradient(135deg,#172554,#2563eb);
+}
+
+.stat-head h1{
+    margin:0;
+    font-size:19px;
+    font-weight:800;
+}
+
+.stat-head p{
+    margin:3px 0 0;
+    font-size:11px;
+    opacity:.82;
+}
+
+.stat-actions{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+}
+
+.stat-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 10px;
+    border-radius:7px;
+    text-decoration:none;
+    font-size:11px;
+    font-weight:700;
+    border:1px solid #dbe3ef;
+    background:#fff;
+    color:#172554;
+}
+
+.stat-btn.primary{
+    background:#2563eb;
+    border-color:#2563eb;
+    color:#fff;
+}
+
+.stat-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+}
+
+.stat-card{
+    border:1px solid #e5e7eb;
+    border-radius:11px;
+    background:#fff;
+    overflow:hidden;
+}
+
+.stat-card-head{
+    padding:11px 13px;
+    background:#f8fafc;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+}
+
+.stat-title{
+    font-size:13px;
+    font-weight:800;
+    color:#111827;
+}
+
+.stat-sub{
+    font-size:10px;
+    color:#6b7280;
+    margin-top:2px;
+}
+
+.stat-body{
+    padding:8px;
+}
+
+.rule{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:9px 7px;
+    border-bottom:1px solid #f0f2f5;
+}
+
+.rule:last-child{
+    border-bottom:0;
+}
+
+.rule-main{
+    min-width:0;
+}
+
+.rule-name{
+    font-size:12px;
+    font-weight:700;
+    color:#111827;
+}
+
+.rule-meta{
+    display:flex;
+    gap:5px;
+    flex-wrap:wrap;
+    margin-top:4px;
+}
+
+.badge{
+    display:inline-flex;
+    padding:2px 6px;
+    border-radius:10px;
+    font-size:9px;
+    font-weight:700;
+    background:#eef2ff;
+    color:#3730a3;
+}
+
+.badge.on{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.badge.off{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.rule-actions{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex-shrink:0;
+}
+
+.mini{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 8px;
+    border-radius:6px;
+    border:1px solid #dbe3ef;
+    background:#fff;
+    color:#1d4ed8;
+    text-decoration:none;
+    font-size:10px;
+    font-weight:700;
+}
+
+.mini.toggle-on{
+    color:#166534;
+    border-color:#bbf7d0;
+    background:#f0fdf4;
+}
+
+.mini.toggle-off{
+    color:#991b1b;
+    border-color:#fecaca;
+    background:#fff7f7;
+}
+
+.empty{
+    padding:14px 8px;
+    text-align:center;
+    color:#9ca3af;
+    font-size:11px;
+}
+
+.notice{
+    margin-bottom:12px;
+    padding:9px 12px;
+    border-radius:8px;
+    background:#eff6ff;
+    border:1px solid #bfdbfe;
+    color:#1e40af;
+    font-size:11px;
+}
+
+@media(max-width:760px){
+    .stat-grid{
+        grid-template-columns:1fr;
+    }
+
+    .stat-head{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+}
+
+@media(max-width:480px){
+    .stat-wrap{
+        padding:8px;
+    }
+
+    .rule{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .rule-actions{
+        width:100%;
+    }
+
+    .rule-actions .mini{
+        flex:1;
+    }
+}
+</style>
+
+<div class="stat-wrap">
+
+    <div class="stat-head">
+        <div>
+            <h1>Statutory Deductions</h1>
+            <p>Central control for payroll statutory rules and rates.</p>
+        </div>
+
+        <div class="stat-actions">
+            
+
+            <a class="stat-btn primary"
+               href="{% url 'hr_payroll:deduction_type_add' %}">
+                + Statutory Rule
+            </a>
+        </div>
+    </div>
+
+    <div class="notice">
+        Changes affect future payroll calculations. Existing finalized payroll
+        records keep their calculated deduction values.
+    </div>
+
+    <div class="stat-grid">
+
+        <!-- PAYE -->
+        <section class="stat-card">
+
+            <div class="stat-card-head">
+                <div>
+                    <div class="stat-title">PAYE Tax Bands</div>
+                    <div class="stat-sub">
+                        Progressive income tax rates
+                    </div>
+                </div>
+
+                <a class="mini"
+                   href="{% url 'hr_payroll:paye_tax_band_add' %}">
+                    + Add
+                </a>
+            </div>
+
+            <div class="stat-body">
+
+                {% for item in paye_bands %}
+
+                    <div class="rule">
+
+                        <div class="rule-main">
+                            <div class="rule-name">
+                                {{ item.name }}
+                            </div>
+
+                            <div class="rule-meta">
+                                <span class="badge">
+                                    {{ item.rate }}%
+                                </span>
+
+                                {% if item.upper_limit %}
+                                    <span class="badge">
+                                        {{ item.lower_limit }} - {{ item.upper_limit }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge">
+                                        {{ item.lower_limit }}+
+                                    </span>
+                                {% endif %}
+
+                                {% if item.is_active %}
+                                    <span class="badge on">ACTIVE</span>
+                                {% else %}
+                                    <span class="badge off">DISABLED</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="rule-actions">
+
+                            <a class="mini"
+                               href="{% url 'hr_payroll:paye_tax_band_edit' item.pk %}">
+                                Edit
+                            </a>
+
+                            <form method="post"
+                                  action="{% url 'hr_payroll:statutory_deduction_toggle' 'paye' item.pk %}"
+                                  style="display:inline;">
+                                {% csrf_token %}
+
+                                {% if item.is_active %}
+                                    <button class="mini toggle-off"
+                                            type="submit">
+                                        Disable
+                                    </button>
+                                {% else %}
+                                    <button class="mini toggle-on"
+                                            type="submit">
+                                        Enable
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <div class="empty">
+                        No PAYE bands configured.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </section>
+
+
+        <!-- PERSONAL RELIEF -->
+        <section class="stat-card">
+
+            <div class="stat-card-head">
+                <div>
+                    <div class="stat-title">Personal Relief</div>
+                    <div class="stat-sub">
+                        PAYE tax credit
+                    </div>
+                </div>
+
+                <a class="mini"
+                   href="{% url 'hr_payroll:paye_relief_add' %}">
+                    + Add
+                </a>
+            </div>
+
+            <div class="stat-body">
+
+                {% for item in paye_reliefs %}
+
+                    <div class="rule">
+
+                        <div class="rule-main">
+                            <div class="rule-name">
+                                {{ item.name }}
+                            </div>
+
+                            <div class="rule-meta">
+                                <span class="badge">
+                                    KSh {{ item.monthly_amount|floatformat:2 }}
+                                </span>
+
+                                {% if item.is_active %}
+                                    <span class="badge on">ACTIVE</span>
+                                {% else %}
+                                    <span class="badge off">DISABLED</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="rule-actions">
+
+                            <a class="mini"
+                               href="{% url 'hr_payroll:paye_relief_edit' item.pk %}">
+                                Edit
+                            </a>
+
+                            <form method="post"
+                                  action="{% url 'hr_payroll:statutory_deduction_toggle' 'relief' item.pk %}"
+                                  style="display:inline;">
+                                {% csrf_token %}
+
+                                {% if item.is_active %}
+                                    <button class="mini toggle-off"
+                                            type="submit">
+                                        Disable
+                                    </button>
+                                {% else %}
+                                    <button class="mini toggle-on"
+                                            type="submit">
+                                        Enable
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <div class="empty">
+                        No Personal Relief configured.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </section>
+
+
+        <!-- NSSF -->
+        <section class="stat-card">
+
+            <div class="stat-card-head">
+                <div>
+                    <div class="stat-title">NSSF Rules</div>
+                    <div class="stat-sub">
+                        Employee contribution tiers
+                    </div>
+                </div>
+
+                <a class="mini"
+                   href="{% url 'hr_payroll:nssf_rule_add' %}">
+                    + Add
+                </a>
+            </div>
+
+            <div class="stat-body">
+
+                {% for item in nssf_rules %}
+
+                    <div class="rule">
+
+                        <div class="rule-main">
+                            <div class="rule-name">
+                                {{ item.name }}
+                            </div>
+
+                            <div class="rule-meta">
+                                <span class="badge">
+                                    {{ item.employee_percentage }}%
+                                </span>
+
+                                <span class="badge">
+                                    Cap {{ item.employee_cap }}
+                                </span>
+
+                                {% if item.is_active %}
+                                    <span class="badge on">ACTIVE</span>
+                                {% else %}
+                                    <span class="badge off">DISABLED</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="rule-actions">
+
+                            <a class="mini"
+                               href="{% url 'hr_payroll:nssf_rule_edit' item.pk %}">
+                                Edit
+                            </a>
+
+                            <form method="post"
+                                  action="{% url 'hr_payroll:statutory_deduction_toggle' 'nssf' item.pk %}"
+                                  style="display:inline;">
+                                {% csrf_token %}
+
+                                {% if item.is_active %}
+                                    <button class="mini toggle-off"
+                                            type="submit">
+                                        Disable
+                                    </button>
+                                {% else %}
+                                    <button class="mini toggle-on"
+                                            type="submit">
+                                        Enable
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <div class="empty">
+                        No NSSF rules configured.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </section>
+
+
+        <!-- SHA / HOUSING -->
+        <section class="stat-card">
+
+            <div class="stat-card-head">
+                <div>
+                    <div class="stat-title">Other Statutory Rules</div>
+                    <div class="stat-sub">
+                        SHA, Housing Levy and other compulsory rules
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-body">
+
+                {% for item in deduction_types %}
+
+                    <div class="rule">
+
+                        <div class="rule-main">
+                            <div class="rule-name">
+                                {{ item.name }}
+                            </div>
+
+                            <div class="rule-meta">
+
+                                {% if item.is_percentage %}
+                                    <span class="badge">
+                                        {{ item.percentage }}%
+                                    </span>
+                                {% else %}
+                                    <span class="badge">
+                                        Fixed {{ item.fixed_amount }}
+                                    </span>
+                                {% endif %}
+
+                                <span class="badge">
+                                    {{ item.calculation_base }}
+                                </span>
+
+                                {% if item.is_compulsory %}
+                                    <span class="badge">
+                                        COMPULSORY
+                                    </span>
+                                {% endif %}
+
+                                {% if item.is_active %}
+                                    <span class="badge on">ACTIVE</span>
+                                {% else %}
+                                    <span class="badge off">DISABLED</span>
+                                {% endif %}
+
+                            </div>
+                        </div>
+
+                        <div class="rule-actions">
+
+                            <a class="mini"
+                               href="{% url 'hr_payroll:deduction_type_edit' item.pk %}">
+                                Edit
+                            </a>
+
+                            <form method="post"
+                                  action="{% url 'hr_payroll:statutory_deduction_toggle' 'deduction' item.pk %}"
+                                  style="display:inline;">
+                                {% csrf_token %}
+
+                                {% if item.is_active %}
+                                    <button class="mini toggle-off"
+                                            type="submit">
+                                        Disable
+                                    </button>
+                                {% else %}
+                                    <button class="mini toggle-on"
+                                            type="submit">
+                                        Enable
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                {% empty %}
+
+                    <div class="empty">
+                        No statutory deduction rules configured.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

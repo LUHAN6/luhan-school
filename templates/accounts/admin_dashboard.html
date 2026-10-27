@@ -551,6 +551,7 @@
         <span>Dashboard</span>
 
     </a>
+        <a href="{% url 'discipline:dashboard' %}" class="side-link">Discipline</a>
 
     <a href="/students/"
        class="side-link">
@@ -678,7 +679,7 @@
 
     </a>
 
-    <a href="{% url 'transport:dashboard' %}"
+    <a href="{% url 'transport_pro:dashboard' %}"
        class="side-link">
 
         <span class="side-icon"><i class="fa-solid fa-bus"></i></span>
@@ -961,6 +962,8 @@
                 </div>
 
 
+<div class="col-xl-3 col-lg-4 col-md-6"><a href="/finance/" class="module"><span class="arrow">&#8594;</span><div class="module-icon blue"><i class="fa-solid fa-chart-line"></i></div><h3 class="module-name">Finance Report</h3><div class="module-description">Fees income, salaries, inventory and transport expenses</div></a></div>
+
                 <!-- ACADEMIC -->
 
                 <div class="col-xl-3 col-lg-4 col-md-6">
@@ -1188,7 +1191,7 @@
 
                 <div class="col-xl-3 col-lg-4 col-md-6">
 
-                    <a href="{% url 'transport:dashboard' %}"
+                    <a href="{% url 'transport_pro:dashboard' %}"
                        class="module">
 
                         <span class="arrow">&#8594;</span>
@@ -1495,7 +1498,7 @@
         <div class="text-center mt-4 mb-2">
 
             <small class="text-muted">
-                {{ branding.school_name|default:"Luhan School" }} ERP · Administrator Portal
+                {{ branding.school_name|default:"Luhan School" }} ERP &middot; Administrator Portal
             </small>
 
         </div>
@@ -1512,12 +1515,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-'<a href="{% url 'weekly_reports:manage_weeks' %}" class="sidebar-link">
-        <span>📅</span> Manage Assessment Weeks
-    </a>'

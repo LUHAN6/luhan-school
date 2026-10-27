@@ -1,0 +1,66 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Disciplinary Management{% endblock %} | {{ branding.school_name|default:"School ERP" }}</title>
+<style>
+:root{--maroon:#641b32;--maroon2:#842846;--ink:#202433;--muted:#6b7280;--line:#e5e7eb;--bg:#f5f6fa;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 Inter,Segoe UI,Arial,sans-serif;color:var(--ink)}
+header{background:var(--maroon);color:white;padding:18px 4vw;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand-identity{display:flex;align-items:center;gap:13px;min-width:0}
+.school-logo{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px;flex-shrink:0}
+.brand{font-size:18px;font-weight:800;letter-spacing:.2px;overflow-wrap:anywhere}
+.brand small{display:block;font-size:12px;font-weight:500;opacity:.8}
+nav{display:flex;gap:8px;flex-wrap:wrap}nav a{color:#fff;text-decoration:none;padding:8px 11px;border-radius:8px;font-size:13px}nav a:hover{background:#ffffff20}
+main{max-width:1440px;margin:28px auto;padding:0 22px 40px}.page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:27px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0 0 12px}.muted{color:var(--muted)}.card{background:white;border:1px solid var(--line);border-radius:15px;padding:20px;box-shadow:0 3px 12px #20243308;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.stat{font-size:30px;font-weight:800;color:var(--maroon);line-height:1.2;margin:8px 0}.stat-label{font-size:13px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--maroon);color:#fff!important;text-decoration:none;border:0;border-radius:9px;padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer}.btn.secondary{background:#f3e8ed;color:var(--maroon)!important}.btn.light{background:#fff;color:var(--maroon)!important;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}tr:last-child td{border-bottom:0}
+.form-control,input,select,textarea{width:100%;border:1px solid #d5d8e0;border-radius:9px;padding:10px 12px;font:inherit;background:white}label{font-weight:700;font-size:13px;display:block;margin-bottom:6px}.field{margin-bottom:16px}.helptext{font-size:12px;color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.form-grid .full{grid-column:1/-1}
+.alert{padding:12px 15px;border-radius:10px;background:#edf7ee;margin-bottom:12px}.badge{display:inline-block;border-radius:999px;background:#f3e8ed;color:var(--maroon);padding:4px 9px;font-size:12px;font-weight:800}.danger{color:#a61b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}
+dl{display:grid;grid-template-columns:190px 1fr;gap:9px 16px}dt{font-size:13px;color:var(--muted)}dd{margin:0;white-space:pre-wrap}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid{grid-template-columns:1fr}dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:10px}main{padding:0 14px 28px}}
+@media(max-width:500px){.grid{grid-template-columns:1fr 1fr}.card{padding:15px}h1{font-size:23px}table{display:block;overflow-x:auto;white-space:nowrap}}
+</style></head>
+<body>
+<header>
+<div class="brand-identity">
+    {% if branding and branding.logo %}
+        <img class="school-logo" src="{{ branding.logo.url }}" alt="{{ branding.school_name|default:'School logo' }}">
+    {% endif %}
+    <div class="brand">
+        {{ branding.school_name|default:"School ERP" }}
+        <small>Disciplinary Management Module</small>
+    </div>
+</div>
+<nav>
+<a href="{% url 'discipline:dashboard' %}">Dashboard</a>
+{% if request.user.is_superuser or request.user.is_staff %}
+    <a href="{% url 'discipline:case_list' %}">Manage Cases</a>
+    <a href="{% url 'discipline:case_create' %}">Report Incident</a>
+    <a href="{% url 'discipline:my_cases' %}">My Cases</a>
+    <a href="{% url 'discipline:reports' %}">Reports</a>
+{% else %}
+    {% if request.user.profile.role == "PARENT" %}
+        <a href="{% url 'discipline:my_cases' %}">My Children's Cases</a>
+        <a href="{% url 'discipline:case_create' %}">Report Incident</a>
+    {% elif request.user.profile.role == "STUDENT" %}
+        <a href="{% url 'discipline:my_cases' %}">My Cases</a>
+        <a href="{% url 'discipline:case_create' %}">Report Incident</a>
+    {% else %}
+        <a href="{% url 'discipline:case_list' %}">Available Cases</a>
+        <a href="{% url 'discipline:case_create' %}">Report Incident</a>
+        <a href="{% url 'discipline:my_cases' %}">My Cases</a>
+    {% endif %}
+{% endif %}
+<a href="/">Return to ERP</a>
+</nav></header>
+<main>
+{% if messages %}{% for message in messages %}<div class="alert">{{ message }}</div>{% endfor %}{% endif %}
+{% block content %}{% endblock %}
+</main><footer>Confidential student information — access only for authorized school purposes.</footer>
+</body></html>
+

@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # ACADEMIC YEAR + TERM LIVE SYNC
 # ============================================================
 
@@ -133,31 +133,53 @@ def sync_timetable_sources():
                 or f"EMP-{source.pk}"
             )
 
-            obj, created = TimetableTeacher.objects.get_or_create(
-                staff_number=staff_number,
-                defaults={
-                    "name": full_name,
-                    "email": source.email or "",
-                    "active": True,
-                },
-            )
+            # HR Employee is the authoritative staff record.
+            # Keep the direct Employee -> TimetableTeacher relationship.
+            obj = TimetableTeacher.objects.filter(
+                employee=source
+            ).first()
 
-            changed = False
+            # Recover an existing teacher record created before the
+            # employee relationship was populated.
+            if obj is None:
+                obj = TimetableTeacher.objects.filter(
+                    staff_number=staff_number
+                ).first()
 
-            if obj.name != full_name:
-                obj.name = full_name
-                changed = True
+            if obj is None:
+                obj = TimetableTeacher.objects.create(
+                    employee=source,
+                    staff_number=staff_number,
+                    name=full_name,
+                    email=source.email or "",
+                    active=True,
+                )
+                changed = False
+            else:
+                changed = False
 
-            if obj.email != (source.email or ""):
-                obj.email = source.email or ""
-                changed = True
+                if obj.employee_id != source.pk:
+                    obj.employee = source
+                    changed = True
 
-            if hasattr(obj, "active") and not obj.active:
-                obj.active = True
-                changed = True
+                if obj.name != full_name:
+                    obj.name = full_name
+                    changed = True
 
-            if changed:
-                obj.save()
+                if obj.staff_number != staff_number:
+                    obj.staff_number = staff_number
+                    changed = True
+
+                if obj.email != (source.email or ""):
+                    obj.email = source.email or ""
+                    changed = True
+
+                if hasattr(obj, "active") and not obj.active:
+                    obj.active = True
+                    changed = True
+
+                if changed:
+                    obj.save()
 
         # ----------------------------------------------------
         # CLASSES / GRADES + STREAMS
