@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Children's Transport</title>
+    <style>
+        :root { color-scheme: light; }
+        body {
+            margin: 0; background: #f3f6fb; color: #17243a;
+            font-family: Arial, sans-serif;
+        }
+        header { background: #123b78; color: white; padding: 22px 5%; }
+        header h1 { margin: 0 0 8px; font-size: 24px; }
+        main { max-width: 1050px; margin: 24px auto; padding: 0 16px; }
+        .intro, .transport-card {
+            background: white; border-radius: 12px; padding: 20px;
+            margin-bottom: 18px; box-shadow: 0 3px 14px #142c4b12;
+        }
+        .transport-card h2 { margin-top: 0; color: #123b78; }
+        .details {
+            display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr));
+            gap: 14px;
+        }
+        .detail { background: #f5f8fc; border-radius: 8px; padding: 12px; }
+        .detail small { display: block; color: #5b6b80; margin-bottom: 6px; }
+        .status { font-weight: bold; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th, td { padding: 11px; text-align: left; border-bottom: 1px solid #e3e9f1; }
+        th { background: #eef3fa; }
+        .back { color: white; }
+        .empty { padding: 16px; background: #f5f8fc; border-radius: 8px; }
+        @media print {
+            body { background: white; }
+            header { background: white; color: black; padding: 8px 0; }
+            .transport-card, .intro { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>My Children's Transport</h1>
+    <a class="back" href="{% url 'accounts:parent_dashboard' %}">Back to Parent Dashboard</a>
+</header>
+<main>
+    <section class="intro">
+        <h2>Transport overview</h2>
+        <p>Transport details shown here are limited to learners linked to your parent account.</p>
+        <p>Linked children: <strong>{{ children|length }}</strong></p>
+    </section>
+
+    {% if transport_records %}
+        {% for record in transport_records %}
+        <section class="transport-card">
+            <h2>{{ record.child.first_name }} {{ record.child.last_name }}</h2>
+            <p>Admission number: {{ record.child.admission_no }}</p>
+            <div class="details">
+                <div class="detail">
+                    <small>Route</small>
+                    <strong>{{ record.learner.route.name|default:"Not specified" }}</strong>
+                    {% if record.learner.route.area %}
+                    <div>{{ record.learner.route.area }}</div>
+                    {% endif %}
+                </div>
+                <div class="detail">
+                    <small>Pickup / drop-off stop</small>
+                    <strong>{{ record.learner.stop.name|default:"Not specified" }}</strong>
+                    {% if record.learner.stop.address_or_landmark %}
+                    <div>{{ record.learner.stop.address_or_landmark }}</div>
+                    {% endif %}
+                </div>
+                <div class="detail">
+                    <small>Service</small>
+                    <strong>
+                    {% if record.learner.direction == "BOTH" %}Morning and afternoon
+                    {% elif record.learner.direction == "AM" %}Morning only
+                    {% elif record.learner.direction == "PM" %}Afternoon only
+                    {% else %}{{ record.learner.get_direction_display|default:record.learner.direction }}
+                    {% endif %}
+                    </strong>
+                </div>
+                <div class="detail">
+                    <small>Assignment status</small>
+                    <span class="status">{{ record.learner.get_status_display|default:record.learner.status }}</span>
+                </div>
+                <div class="detail">
+                    <small>Service period</small>
+                    <div>From: {{ record.learner.start_date|default:"Not specified" }}</div>
+                    <div>To: {{ record.learner.end_date|default:"Ongoing" }}</div>
+                </div>
+                <div class="detail">
+                    <small>Transport charges balance</small>
+                    <strong>{{ record.total_balance|floatformat:2 }}</strong>
+                    <div>Charged: {{ record.total_charged|floatformat:2 }}</div>
+                    <div>Verified payments: {{ record.total_paid|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            {% if record.charges %}
+            <h3>Transport charges</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Period</th><th>Due date</th><th>Amount</th>
+                        <th>Verified paid</th><th>Balance</th><th>Status</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for charge in record.charges %}
+                    <tr>
+                        <td>{{ charge.period_label|default:"Transport" }}</td>
+                        <td>{{ charge.due_date|default:"?" }}</td>
+                        <td>{{ charge.amount|floatformat:2 }}</td>
+                        <td>{{ charge.paid|floatformat:2 }}</td>
+                        <td>{{ charge.balance|floatformat:2 }}</td>
+                        <td>{{ charge.status }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>No transport charges are recorded for this assignment.</p>
+            {% endif %}
+        </section>
+        {% endfor %}
+    {% else %}
+        <section class="transport-card">
+            <h2>No linked transport records</h2>
+            <p>No transport assignment matching your children's admission numbers was found. If your child uses school transport, contact the school office to confirm the admission number on the transport record.</p>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>

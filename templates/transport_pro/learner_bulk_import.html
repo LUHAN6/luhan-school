@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bulk Learner Transport Import</title>
+<style>
+body{margin:0;background:#f2f5fa;color:#1c2d45;font-family:Segoe UI,Arial,sans-serif}.top{background:#173b73;color:white;padding:22px max(18px,calc((100% - 1000px)/2))}main{max-width:1000px;margin:26px auto;padding:0 18px}.panel{background:white;border-radius:14px;padding:24px;margin-bottom:18px;box-shadow:0 5px 24px #1c355510}h1{margin:0 0 6px;font-size:25px}h2{color:#173b73;margin-top:0}.muted{color:#64748b}button,.btn{display:inline-block;border:0;border-radius:8px;padding:11px 16px;background:#174b91;color:white;font-weight:650;text-decoration:none;cursor:pointer}.secondary{background:#e8eef8;color:#173b73}.success{padding:14px;background:#e8f7ed;border-left:4px solid #18864b;border-radius:6px;margin:8px 0}.error{padding:12px 15px;background:#fff0f0;border-left:4px solid #c62828;border-radius:6px;margin:8px 0}input{display:block;margin:14px 0 20px;max-width:100%;font:inherit}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}li{margin:8px 0}
+</style>
+</head>
+<body>
+<header class="top"><h1>Bulk Learner Transport Import</h1><div>Validate the whole workbook before saving any registration.</div></header>
+<main>
+{% if messages %}{% for message in messages %}<div class="success" id="flash">{{ message }}</div>{% endfor %}{% endif %}
+{% if imported %}<section class="panel" id="importSuccess"><div class="success">Import completed: {{ imported }} learner registration(s) saved. Charges are marked Due.</div><p>This confirmation will disappear after five seconds.</p><div class="row"><a class="btn" href="{% url 'transport_pro:learner_bulk_import' %}">Upload Another</a><a class="btn secondary" href="{% url 'transport_pro:learner_registration' %}">Close</a><a class="btn secondary" href="{% url 'transport_pro:list' kind='learners' %}">Go Back</a></div></section>{% endif %}
+{% if errors %}<section class="panel"><h2>Validation failed</h2><p>No records were imported. Correct these issues and upload again.</p>{% for error in errors %}<div class="error">{{ error }}</div>{% endfor %}</section>{% endif %}
+<section class="panel">
+<h2>1. Download the current template</h2><p class="muted">The workbook contains dropdowns populated from active routes and stops. Admission numbers are checked against the school register; names, class and parent details are retrieved automatically.</p>
+<div class="row"><a class="btn" href="{% url 'transport_pro:learner_import_template' %}">Download Excel Template</a><a class="btn secondary" href="{% url 'transport_pro:learner_registration' %}">Manual Registration</a></div>
+</section>
+<section class="panel">
+<h2>2. Upload completed workbook</h2>
+<ul><li>Accepted file: Excel <strong>.xlsx</strong>, maximum 5 MB.</li><li>Maximum 500 learner rows per upload.</li><li>Use the dropdowns for areas and times; each time must match the selected stop's configuration.</li><li>Duplicate or invalid rows block the entire batch. No partial import is committed.</li><li>Each successful registration creates a transport charge marked <strong>Due</strong>; this does not record a payment.</li></ul>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}<label for="workbook"><strong>Select workbook</strong></label><input id="workbook" type="file" name="workbook" accept=".xlsx" required><button type="submit">Validate & Import Workbook</button></form>
+<div class="row"><a class="btn secondary" href="{% url 'transport_pro:learner_registration' %}">Close</a><a class="btn secondary" href="{% url 'transport_pro:list' kind='learners' %}">Go Back</a></div>
+</section>
+</main>
+<script>
+const flash=document.getElementById("flash")||document.getElementById("importSuccess");
+if(flash){setTimeout(()=>{flash.style.transition="opacity .4s";flash.style.opacity="0";setTimeout(()=>flash.remove(),450)},5000);}
+</script>
+</body>
+</html>

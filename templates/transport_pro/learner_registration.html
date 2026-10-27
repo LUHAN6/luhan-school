@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register Learner ? Transport</title>
+<style>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#18263c;background:#f2f5fa}
+body{margin:0}.top{background:#173b73;color:white;padding:22px max(20px,calc((100% - 1120px)/2))}
+main{max-width:1120px;margin:26px auto;padding:0 18px}.panel{background:white;border-radius:14px;padding:24px;margin-bottom:18px;box-shadow:0 5px 24px #1c355510}
+h1{margin:0 0 6px;font-size:25px}h2{margin-top:0;color:#173b73}.muted{color:#64748b}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.field label{display:block;font-weight:650;margin-bottom:7px}
+input,select{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;background:white;font:inherit}
+input[readonly]{background:#f1f5f9;color:#475569}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+button,.btn{display:inline-block;border:0;border-radius:8px;padding:11px 16px;background:#174b91;color:white;font-weight:650;text-decoration:none;cursor:pointer}
+.secondary{background:#e8eef8;color:#173b73}.green{background:#18794e}.error{padding:12px 15px;background:#fff0f0;border-left:4px solid #c62828;border-radius:6px;margin:8px 0}.success{padding:14px;background:#e8f7ed;border-left:4px solid #18864b;border-radius:6px;margin:8px 0}
+#lookupStatus{font-size:14px;margin-top:7px}.notice{padding:12px;background:#eef5ff;border-radius:8px;margin:14px 0}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.panel{padding:17px}}
+</style>
+</head>
+<body>
+<header class="top"><h1>Transport Learner Registration</h1><div>Look up the learner first, then assign configured pickup and drop-off stops.</div></header>
+<main>
+{% if messages %}{% for message in messages %}<div class="success" id="flash">{{ message }}</div>{% endfor %}{% endif %}
+{% if errors %}<section class="panel"><h2>Please correct the following</h2>{% for error in errors %}<div class="error">{{ error }}</div>{% endfor %}</section>{% endif %}
+<section class="panel">
+<h2>1. Learner details</h2>
+<p class="muted">Learner details are loaded from the school register and cannot be edited here.</p>
+<form method="post" id="registrationForm">
+{% csrf_token %}
+<div class="grid">
+<div class="field"><label for="admission_no">Admission number</label><input id="admission_no" name="admission_no" required autocomplete="off" value="{{ request.POST.admission_no|default:'' }}"><div class="row"><button type="button" id="lookupButton">Load Learner</button></div><div id="lookupStatus" role="status"></div></div>
+<div class="field"><label for="learner_name">Full name</label><input id="learner_name" readonly value="{{ request.POST.learner_name|default:'' }}"></div>
+<div class="field"><label for="class_name">Grade / Class</label><input id="class_name" readonly value="{{ request.POST.class_name|default:'' }}"></div>
+<div class="field"><label for="parent_name">Parent / Guardian</label><input id="parent_name" readonly value="{{ request.POST.parent_name|default:'' }}"></div>
+</div>
+<div class="notice">Only active learners can be registered. Pickup and drop-off times are taken from the selected stop's configuration.</div>
+<h2>2. Transport details</h2>
+<div class="grid">
+<div class="field"><label for="pickup_stop">Pickup area / stop</label><select id="pickup_stop" name="pickup_stop" required><option value="">Choose pickup area</option>{% for stop in stops %}{% if stop.morning_pickup_time %}<option value="{{ stop.pk }}" {% if request.POST.pickup_stop == stop.pk|stringformat:"s" %}selected{% endif %}>{{ stop.route.area|default:stop.route.name }} | {{ stop.route.code }} - {{ stop.name }}</option>{% endif %}{% endfor %}</select></div>
+<div class="field"><label for="pickup_time">Configured pickup time</label><select id="pickup_time" name="pickup_time" required><option value="">Select pickup stop first</option></select></div>
+<div class="field"><label for="dropoff_stop">Drop-off area / stop</label><select id="dropoff_stop" name="dropoff_stop" required><option value="">Choose drop-off area</option>{% for stop in stops %}{% if stop.afternoon_dropoff_time %}<option value="{{ stop.pk }}" {% if request.POST.dropoff_stop == stop.pk|stringformat:"s" %}selected{% endif %}>{{ stop.route.area|default:stop.route.name }} | {{ stop.route.code }} - {{ stop.name }}</option>{% endif %}{% endfor %}</select></div>
+<div class="field"><label for="dropoff_time">Configured drop-off time</label><select id="dropoff_time" name="dropoff_time" required><option value="">Select drop-off stop first</option></select></div>
+<div class="field"><label for="price">Price to charge (KSh)</label><input type="number" name="price" id="price" min="0" step="0.01" required value="{{ request.POST.price|default:'' }}"></div>
+<div class="field"><label for="period_label">Billing period</label><input type="text" name="period_label" id="period_label" maxlength="80" required value="{{ request.POST.period_label|default:default_period }}"></div>
+</div>
+<div class="row"><button type="submit" class="green">Save Registration & Charge</button><a class="btn secondary" href="{% url 'transport_pro:learner_bulk_import' %}">Bulk Import from Excel</a><a class="btn secondary" href="{% url 'transport_pro:list' kind='learners' %}">Go Back</a></div>
+</form>
+</section>
+<section class="panel"><h2>Need to register many learners?</h2><p class="muted">Download the Excel template to use dropdowns for configured stops and times. The entire workbook is validated before any records are saved.</p><div class="row"><a class="btn" href="{% url 'transport_pro:learner_import_template' %}">Download Excel Template</a><a class="btn secondary" href="{% url 'transport_pro:learner_bulk_import' %}">Upload Excel Workbook</a></div></section>
+</main>
+{{ stop_data|json_script:"stop-data" }}
+<script>
+const stopData=JSON.parse(document.getElementById("stop-data").textContent);
+function fillTime(stopId,selectId,key){
+ const select=document.getElementById(selectId);select.innerHTML="";
+ const opt=document.createElement("option");opt.value="";opt.textContent="Choose configured time";select.appendChild(opt);
+ const stop=stopData.find(s=>String(s.id)===String(stopId));
+ if(stop && stop[key]){const o=document.createElement("option");o.value=stop[key];o.textContent=stop[key];select.appendChild(o);select.value=stop[key];}
+}
+document.getElementById("pickup_stop").addEventListener("change",e=>fillTime(e.target.value,"pickup_time","morning_time"));
+document.getElementById("dropoff_stop").addEventListener("change",e=>fillTime(e.target.value,"dropoff_time","afternoon_time"));
+const oldPickup="{{ request.POST.pickup_stop|default:'' }}",oldDropoff="{{ request.POST.dropoff_stop|default:'' }}";
+fillTime(oldPickup,"pickup_time","morning_time");fillTime(oldDropoff,"dropoff_time","afternoon_time");
+document.getElementById("lookupButton").addEventListener("click",async()=>{
+ const admission=document.getElementById("admission_no").value.trim(),status=document.getElementById("lookupStatus");
+ status.textContent="Looking up learner?";
+ ["learner_name","class_name","parent_name"].forEach(id=>document.getElementById(id).value="");
+ try{
+  const response=await fetch("{% url 'transport_pro:learner_lookup' %}?admission_no="+encodeURIComponent(admission),{headers:{"X-Requested-With":"XMLHttpRequest"}});
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw new Error(result.error||"Lookup failed.");
+  document.getElementById("learner_name").value=result.learner.learner_name;
+  document.getElementById("class_name").value=result.learner.class_name;
+  document.getElementById("parent_name").value=result.learner.parent_name;
+  status.textContent="Learner loaded successfully.";
+  status.style.color="#18794e";
+ }catch(err){status.textContent=err.message;status.style.color="#b42318";}
+});
+document.getElementById("registrationForm").addEventListener("submit",e=>{
+ const name=document.getElementById("learner_name").value.trim();
+ if(!name){e.preventDefault();document.getElementById("lookupStatus").textContent="Load a valid learner before saving.";document.getElementById("admission_no").focus();}
+});
+const flash=document.getElementById("flash");if(flash){setTimeout(()=>{flash.style.transition="opacity .4s";flash.style.opacity="0";setTimeout(()=>flash.remove(),450)},5000);}
+</script>
+</body>
+</html>
