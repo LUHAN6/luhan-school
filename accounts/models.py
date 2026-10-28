@@ -303,6 +303,9 @@ class SchoolBranding(models.Model):
     class Meta:
         verbose_name = "School Branding"
         verbose_name_plural = "School Branding"
+        permissions = [
+            ("access_staff_academic_portal", "Academics (full access to the staff academic portal)"),
+        ]
 
     def __str__(self):
         return self.school_name
