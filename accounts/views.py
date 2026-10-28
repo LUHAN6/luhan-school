@@ -156,8 +156,18 @@ def redirect_by_role(user):
 
     if profile.role == "STAFF":
 
+        # Teaching staff have an active TimetableTeacher record.
+        # Other staff use the employee self-service dashboard.
+        if profile.employee_id and TimetableTeacher.objects.filter(
+            employee_id=profile.employee_id,
+            active=True,
+        ).exists():
+            return redirect(
+                "accounts:staff_academic_portal"
+            )
+
         return redirect(
-            "accounts:staff_academic_portal"
+            "accounts:staff_dashboard"
         )
 
     if profile.role == "STUDENT":
@@ -5068,7 +5078,7 @@ def teaching_staff_login(request):
         request=request,
         expected_role="STAFF",
         template_name="accounts/teaching_staff_login.html",
-        portal_url="accounts:staff_dashboard",
+        portal_url="accounts:staff_academic_portal",
     )
 
 
