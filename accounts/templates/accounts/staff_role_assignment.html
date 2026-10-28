@@ -154,17 +154,16 @@
                         <div class="mb-4">
 
                             <label class="form-label fw-bold">
-                                Staff Role <span class="text-danger">*</span>
+                                Staff Role <span class="text-muted">(optional)</span>
                             </label>
 
                             <select
-                                name="custom_role"
-                                class="form-select form-select-lg"
-                                required
+                    name="custom_role"
+                    class="form-select form-select-lg"
                             >
 
                                 <option value="">
-                                    -- Select Staff Role --
+                                    Leave unassigned for now
                                 </option>
 
                                 {% for role in roles %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div><h2 class="fw-bold mb-1">Assign Staff Roles</h2><p class="text-muted mb-0">Roles can be assigned or changed without recreating a staff account.</p></div>
+    <a class="btn btn-outline-secondary" href="{% url 'accounts:staff_management' %}">Back to Staff Management</a>
+  </div>
+  {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+  <div class="alert alert-info"><strong>{{ unassigned_count }}</strong> staff account(s) currently have no custom role. A staff account remains a staff account even when its custom role is unassigned.</div>
+  <div class="card shadow-sm border-0 mb-4"><div class="card-header bg-light"><h5 class="mb-0">Unassigned Staff</h5></div><div class="card-body p-0">
+    {% if unassigned_profiles %}<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Staff member</th><th>Department</th><th>Job title</th><th style="min-width:280px">Assign role</th></tr></thead><tbody>
+    {% for profile in unassigned_profiles %}<tr><td><strong>{{ profile.user.get_full_name|default:profile.user.username }}</strong><div class="small text-muted">{{ profile.user.username }}{% if profile.user.email %} · {{ profile.user.email }}{% endif %}</div></td><td>{{ profile.department.name|default:"Not assigned" }}</td><td>{{ profile.job_title|default:"—" }}</td><td><form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="profile_id" value="{{ profile.id }}"><select class="form-select" name="custom_role" required><option value="">Select role</option>{% for role in active_roles %}<option value="{{ role.id }}">{{ role.name }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Assign</button></form></td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p class="text-muted p-3 mb-0">All staff accounts currently have a custom role assigned.</p>{% endif %}
+  </div></div>
+  <div class="card shadow-sm border-0"><div class="card-header bg-light"><h5 class="mb-0">Assigned Staff — Change or Remove Role</h5></div><div class="card-body p-0">
+    {% if assigned_profiles %}<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Staff member</th><th>Current role</th><th style="min-width:300px">Change role</th></tr></thead><tbody>
+    {% for profile in assigned_profiles %}<tr><td><strong>{{ profile.user.get_full_name|default:profile.user.username }}</strong><div class="small text-muted">{{ profile.user.username }}</div></td><td><span class="badge text-bg-primary">{{ profile.custom_role.name }}</span></td><td><form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="profile_id" value="{{ profile.id }}"><select class="form-select" name="custom_role"><option value="">Remove custom role</option>{% for role in active_roles %}<option value="{{ role.id }}" {% if role.id == profile.custom_role_id %}selected{% endif %}>{{ role.name }}</option>{% endfor %}</select><button class="btn btn-outline-primary" type="submit">Save</button></form></td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p class="text-muted p-3 mb-0">No staff roles have been assigned yet.</p>{% endif %}
+  </div></div>
+</div>
+{% endblock %}

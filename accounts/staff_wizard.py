@@ -410,82 +410,37 @@ def support_details(request):
 def role(request):
 
     if not _is_admin(request):
-        return _deny(
-            request,
-            "You do not have permission to add staff."
-        )
+        return _deny(request, "You do not have permission to add staff.")
 
-    data = request.session.get(
-        "fresh_staff_wizard"
-    )
-
+    data = request.session.get("fresh_staff_wizard")
     if not data:
-
-        messages.error(
-            request,
-            "Staff details were not found. Please start again."
-        )
-
-        return redirect(
-            "accounts:fresh_staff_start"
-        )
+        messages.error(request, "Staff details were not found. Please start again.")
+        return redirect("accounts:fresh_staff_start")
 
     if request.method == "POST":
+        role_id = request.POST.get("custom_role", "").strip()
+        selected_role = None
+        if role_id:
+            selected_role = Role.objects.filter(id=role_id, is_active=True).first()
+            if selected_role is None:
+                messages.error(request, "Please select a valid active role, or choose to create the account without a role.")
+                return render(request, "accounts/fresh_staff_role.html", {"data": data, "roles": _roles()})
 
-        role_id = request.POST.get(
-            "custom_role"
-        )
-
-        selected_role = (
-            Role.objects
-            .filter(
-                id=role_id,
-                is_active=True
-            )
-            .first()
-        )
-
-        if not selected_role:
-
-            messages.error(
-                request,
-                "Please select a valid staff role."
-            )
-
-            return render(
-                request,
-                "accounts/fresh_staff_role.html",
-                {
-                    "data": data,
-                    "roles": _roles(),
-                }
-            )
-
-        data["custom_role"] = selected_role.id
-        data["custom_role_name"] = selected_role.name
+        if selected_role:
+            data["custom_role"] = selected_role.id
+            data["custom_role_name"] = selected_role.name
+        else:
+            data.pop("custom_role", None)
+            data.pop("custom_role_name", None)
 
         request.session["fresh_staff_wizard"] = data
         request.session.modified = True
 
         if data.get("staff_type") == "TEACHING":
+            return redirect("accounts:fresh_staff_subjects")
+        return _create_staff_account(request, data)
 
-            return redirect(
-                "accounts:fresh_staff_subjects"
-            )
-
-        return _create_staff_account(
-            request,
-            data
-        )
-
-    return render(
-        request,
-        "accounts/fresh_staff_role.html",
-        {
-            "data": data,
-            "roles": _roles(),
-        }
-    )
+    return render(request, "accounts/fresh_staff_role.html", {"data": data, "roles": _roles()})
 
 
 # ============================================================
@@ -776,16 +731,6 @@ def _create_staff_account(
         .first()
     )
 
-    if not custom_role:
-
-        messages.error(
-            request,
-            "The selected staff role is no longer available."
-        )
-
-        return redirect(
-            "accounts:fresh_staff_role"
-        )
 
     username = data.get(
         "username"
@@ -1127,7 +1072,7 @@ def _create_staff_account(
                     "staff_type",
                     ""
                 ),
-                "role": custom_role.name,
+                "role": custom_role.name if custom_role else "Unassigned",
                 "employee_number": employee_number,
                 "username": username,
                 "password": password,

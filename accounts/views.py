@@ -4549,6 +4549,58 @@ def toggle_role_status(
 
 
 # ============================================================
+
+
+# ============================================================
+# STAFF ROLE MANAGEMENT (SEPARATE FROM STAFF CREATION)
+# ============================================================
+
+@login_required
+def staff_role_management(request):
+    """Assign or change custom ERP roles for existing staff accounts."""
+    if not admin_required(request):
+        messages.error(request, "You do not have permission to assign staff roles.")
+        return redirect_by_role(request.user)
+
+    staff_profiles = (
+        UserProfile.objects
+        .filter(role="STAFF")
+        .select_related("user", "department", "custom_role")
+        .order_by("user__last_name", "user__first_name", "user__username")
+    )
+    unassigned_profiles = staff_profiles.filter(custom_role__isnull=True)
+    assigned_profiles = staff_profiles.filter(custom_role__isnull=False)
+    active_roles = Role.objects.filter(is_active=True).order_by("name")
+
+    if request.method == "POST":
+        profile_id = request.POST.get("profile_id", "").strip()
+        role_id = request.POST.get("custom_role", "").strip()
+        profile = get_object_or_404(UserProfile, id=profile_id, role="STAFF")
+
+        if not role_id:
+            profile.custom_role = None
+            profile.save(update_fields=["custom_role"])
+            messages.success(request, f"Role removed from {profile.user.get_full_name() or profile.user.username}. Their account remains a staff account.")
+            return redirect("accounts:staff_role_management")
+
+        selected_role = Role.objects.filter(id=role_id, is_active=True).first()
+        if selected_role is None:
+            messages.error(request, "Select a valid active role.")
+            return redirect("accounts:staff_role_management")
+
+        profile.custom_role = selected_role
+        profile.save(update_fields=["custom_role"])
+        messages.success(request, f"{selected_role.name} assigned to {profile.user.get_full_name() or profile.user.username}.")
+        return redirect("accounts:staff_role_management")
+
+    return render(request, "accounts/staff_role_management.html", {
+        "unassigned_profiles": unassigned_profiles,
+        "assigned_profiles": assigned_profiles,
+        "active_roles": active_roles,
+        "unassigned_count": unassigned_profiles.count(),
+    })
+
+
 # SCHOOL BRANDING MANAGEMENT
 # ============================================================
 
@@ -5552,7 +5604,7 @@ def _create_staff_from_wizard(data, custom_role, subject_ids=None):
             "username": username,
             "password": password,
             "employee_number": employee_number,
-            "role": custom_role.name,
+            "role": custom_role.name if custom_role else "Unassigned",
             "staff_type": data.get("staff_type", ""),
             "subjects": assigned_subject_names,
             "classes": assigned_class_names,
@@ -5588,45 +5640,25 @@ def staff_role_assignment(request):
 
         role_id = request.POST.get("custom_role")
 
-        if not role_id:
-            messages.error(
-                request,
-                "Please select a staff role."
+        custom_role = None
+        if role_id:
+            custom_role = (
+                Role.objects
+                .filter(id=role_id, is_active=True)
+                .first()
             )
-            return render(
-                request,
-                "accounts/staff_role_assignment.html",
-                {
-                    "data": data,
-                    "roles": roles,
-                }
-            )
-
-        custom_role = (
-            Role.objects
-            .filter(
-                id=role_id,
-                is_active=True
-            )
-            .first()
-        )
-
-        if not custom_role:
-            messages.error(
-                request,
-                "The selected staff role is invalid."
-            )
-            return render(
-                request,
-                "accounts/staff_role_assignment.html",
-                {
-                    "data": data,
-                    "roles": roles,
-                }
-            )
-
-        data["custom_role"] = custom_role.id
-        data["custom_role_name"] = custom_role.name
+            if custom_role is None:
+                messages.error(request, "The selected staff role is invalid or inactive.")
+                return render(
+                    request,
+                    "accounts/staff_role_assignment.html",
+                    {"data": data, "roles": roles},
+                )
+            data["custom_role"] = custom_role.id
+            data["custom_role_name"] = custom_role.name
+        else:
+            data.pop("custom_role", None)
+            data.pop("custom_role_name", None)
 
         request.session["staff_wizard"] = data
         request.session.modified = True
@@ -5702,15 +5734,6 @@ def staff_subject_assignment(request):
             "accounts:staff_role_assignment"
         )
 
-    if not data.get("custom_role"):
-        messages.error(
-            request,
-            "Please assign a staff role before assigning subjects."
-        )
-        return redirect(
-            "accounts:staff_role_assignment"
-        )
-
     subjects = (
         TimetableSubject.objects
         .filter(is_active=True)
@@ -5757,23 +5780,19 @@ def staff_subject_assignment(request):
                 }
             )
 
-        custom_role = (
-            Role.objects
-            .filter(
-                id=data.get("custom_role"),
-                is_active=True
+        custom_role = None
+        if data.get("custom_role"):
+            custom_role = (
+                Role.objects
+                .filter(id=data.get("custom_role"), is_active=True)
+                .first()
             )
-            .first()
-        )
-
-        if not custom_role:
-            messages.error(
-                request,
-                "The selected staff role is no longer available."
-            )
-            return redirect(
-                "accounts:staff_role_assignment"
-            )
+            if custom_role is None:
+                messages.error(request, "The saved role is no longer active. You may continue without a role.")
+                data.pop("custom_role", None)
+                data.pop("custom_role_name", None)
+                request.session["staff_wizard"] = data
+                request.session.modified = True
 
         try:
 
@@ -5960,21 +5979,17 @@ def staff_class_assignment(request):
         request.session["staff_wizard"] = data
         request.session.modified = True
 
-        custom_role = (
-            Role.objects
-            .filter(
-                id=data.get("custom_role"),
-                is_active=True
+        custom_role = None
+        if data.get("custom_role"):
+            custom_role = (
+                Role.objects
+                .filter(id=data.get("custom_role"), is_active=True)
+                .first()
             )
-            .first()
-        )
-
-        if not custom_role:
-            messages.error(
-                request,
-                "The selected staff role is no longer available."
-            )
-            return redirect("accounts:staff_role_assignment")
+            if custom_role is None:
+                messages.error(request, "The saved role is no longer active. The staff account will be created without a role.")
+                data.pop("custom_role", None)
+                data.pop("custom_role_name", None)
 
         try:
 

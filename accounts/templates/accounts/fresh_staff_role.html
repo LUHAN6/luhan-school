@@ -7,7 +7,7 @@
     <div class="mb-4">
         <h2 class="fw-bold">Assign Staff Role</h2>
         <p class="text-muted">
-            Select the role this staff member will hold.
+            Assign a role now, or continue and assign one later from Staff Management.
         </p>
     </div>
 
@@ -56,18 +56,15 @@
             <div class="card-body">
 
                 <label class="form-label fw-semibold">
-                    Staff Role *
+                    Staff Role (Optional)
                 </label>
 
                 <select
                     name="custom_role"
                     class="form-select"
-                    required
                 >
 
-                    <option value="">
-                        Select Role
-                    </option>
+                    <option value="">Leave unassigned for now</option>
 
                     {% for role in roles %}
 
@@ -110,7 +107,7 @@
                 type="submit"
                 class="btn btn-primary px-4"
             >
-                Continue →
+                Continue (role optional) →
             </button>
 
         </div>

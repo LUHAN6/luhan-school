@@ -156,6 +156,12 @@ urlpatterns = [
     ),
 
     path(
+        "staff-role-management/",
+        views.staff_role_management,
+        name="staff_role_management",
+    ),
+
+    path(
         "staff/<int:user_id>/",
         views.view_staff,
         name="view_staff",

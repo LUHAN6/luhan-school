@@ -147,6 +147,24 @@
             margin-bottom: 8px;
         }
 
+
+        .permission-tools{background:#f8fafc;border:1px solid #dbe3ef;border-radius:10px;padding:16px;margin:0 0 18px}
+        .permission-tools-row{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1fr);gap:10px}
+        .permission-search,.role-template{width:100%;min-width:0;padding:11px 12px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-size:14px;margin:0}
+        .permission-tool-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+        .tool-button{background:#e2e8f0;color:#1e293b;padding:8px 11px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer}
+        .tool-button:hover{background:#cbd5e1}.permission-help{color:#475569;font-size:13px;line-height:1.5;margin:12px 0 0}
+        .permission-summary{display:flex;gap:5px;align-items:center;flex-wrap:wrap;color:#334155;font-size:13px;margin-top:10px}
+        .permission-groups{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+        .permission-group{border:1px solid #dbe3ef;border-radius:9px;overflow:hidden;background:#fff}
+        .permission-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:#eff6ff;font-weight:700}
+        .permission-group summary::-webkit-details-marker{display:none}.permission-group summary::after{content:"＋";color:#1d4ed8;font-size:18px}
+        .permission-group[open] summary::after{content:"−"}.permission-group-title{display:flex;flex-direction:column;gap:3px}
+        .permission-group-title small{font-weight:400;color:#475569}.group-count{font-size:12px;font-weight:600;color:#334155;background:#dbeafe;padding:4px 8px;border-radius:999px;white-space:nowrap}
+        .group-actions{display:flex;flex-wrap:wrap;gap:7px;padding:10px 13px 0}.group-actions button{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;padding:6px 9px;font-size:12px}
+        .permission-group .permissions{padding:12px;margin:0}.permission[hidden],.permission-group[hidden]{display:none!important}
+        @media(max-width:640px){.permission-tools-row{grid-template-columns:1fr}.card{padding:18px}.container{padding:0 12px}}
+
     </style>
 
 </head>
@@ -216,12 +234,36 @@
                 Assign Permissions
             </div>
 
+            <div class="permission-tools" role="region" aria-label="Permission tools">
+                <div class="permission-tools-row">
+                    <input type="search" id="permissionSearch" class="permission-search"
+                           placeholder="Search permissions, modules or actions..." aria-label="Search permissions">
+                    <select id="roleTemplate" class="role-template" aria-label="Choose a role template">
+                        <option value="">Start from a role template…</option>
+                        <option value="teacher">Teacher</option><option value="hod">Head of Department</option>
+                        <option value="head">Head of School</option><option value="accountant">Accountant</option>
+                        <option value="hr">HR Officer</option><option value="librarian">Librarian</option>
+                        <option value="transport">Transport Manager</option><option value="storekeeper">Storekeeper</option>
+                        <option value="custom">Custom Role (clear all)</option>
+                    </select>
+                </div>
+                <div class="permission-tool-actions">
+                    <button type="button" class="tool-button" id="expandAllPermissions">Expand all</button>
+                    <button type="button" class="tool-button" id="collapseAllPermissions">Collapse all</button>
+                    <button type="button" class="tool-button" id="selectVisiblePermissions">Select visible</button>
+                    <button type="button" class="tool-button" id="clearVisiblePermissions">Clear visible</button>
+                    <button type="button" class="tool-button" id="clearAllPermissions">Clear all</button>
+                </div>
+                <p class="permission-help">Templates only select permissions available in this installation. Review access before saving; delete and system-administration permissions are never granted by a template.</p>
+                <div class="permission-summary" aria-live="polite"><strong id="selectedPermissionCount">0</strong> permissions selected <span id="visiblePermissionCount"></span></div>
+            </div>
+
 
             <div class="permissions">
 
                 {% for permission in permissions %}
 
-                    <div class="permission">
+                    <div class="permission" data-permission-card>
 
                         <label>
 
@@ -229,6 +271,9 @@
                                 type="checkbox"
                                 name="permissions"
                                 value="{{ permission.id }}"
+                                data-app="{{ permission.content_type.app_label|escape }}"
+                                data-model="{{ permission.content_type.model|escape }}"
+                                data-codename="{{ permission.codename|escape }}"
 
                                 {% if permission in role.permissions.all %}
                                     checked
@@ -277,6 +322,100 @@
     </div>
 
 </div>
+
+
+<script>
+(function(){
+"use strict";
+const root=document.querySelector(".permissions");if(!root)return;
+const cards=Array.from(root.querySelectorAll("[data-permission-card]"));
+const search=document.getElementById("permissionSearch"),template=document.getElementById("roleTemplate");
+const selectedCount=document.getElementById("selectedPermissionCount"),visibleCount=document.getElementById("visiblePermissionCount");
+const modules={academic:"Academic Management",accounts:"School Configuration",admin:"System Administration",attendance:"Attendance",auth:"Users & Security",discipline:"Discipline",fees:"Finance & Fees",hostel:"Boarding & Hostel",hr_payroll:"Staff & Payroll",inventory:"Inventory & Stores",library:"Library",lms:"Learning Management",messaging:"Communication",noticeboard:"Notice Board",number_formats:"School Configuration",parents:"Parents",professional_documents:"Professional Documents",sessions:"Academic Sessions",students:"Students & Admissions",termly_submission:"Termly Submissions",timetable:"Timetable & Lessons",transport:"Transport",transport_pro:"Transport",weekly_reports:"Weekly Reports"};
+const labels={assessment:"Assessments",assessmenttype:"Assessment Types",assessmentweek:"Assessment Weeks",assessmentwindow:"Assessment Windows",gradingscale:"Grading Scales",stream:"Streams",subject:"Subjects",department:"Departments",userprofile:"User Profiles",student:"Students",onlineapplication:"Admissions",employee:"Employees",employeedocument:"Employee Documents",employeeexit:"Employee Exits",leaveapplication:"Leave Applications",payslip:"Payslips",payrollrecord:"Payroll Records",staffloan:"Staff Loans",notice:"Notices",message:"Messages",timetablelesson:"Timetable Lessons",timetableteacher:"Timetable Teachers",book:"Books",bookissue:"Book Issues",item:"Items",asset:"Assets",supplier:"Suppliers",purchase:"Purchases",feerecord:"Fee Records",feepayment:"Fee Payments",feestructure:"Fee Structures",vehicle:"Vehicles",driver:"Drivers",route:"Routes"};
+const items=cards.map(card=>{const input=card.querySelector('input[name="permissions"]');const small=card.querySelector("small");const app=(input.dataset.app||"").toLowerCase(),model=(input.dataset.model||"").toLowerCase(),codename=(input.dataset.codename||"").toLowerCase();const appName=modules[app]||app.replace(/_/g," ");const modelName=labels[model]||model.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());return {card,input,app,model,codename,appName,modelName,text:(card.textContent+" "+app+" "+model+" "+codename+" "+(small?small.textContent:"")).toLowerCase()};});
+const grouped=new Map();items.forEach(i=>{const k=i.app+"::"+i.model;if(!grouped.has(k))grouped.set(k,{key:k,app:i.app,model:i.model,appName:i.appName,modelName:i.modelName,items:[]});grouped.get(k).items.push(i);});
+const wrapper=document.createElement("div");wrapper.className="permission-groups";
+Array.from(grouped.values()).sort((a,b)=>(a.appName+a.modelName).localeCompare(b.appName+b.modelName)).forEach(g=>{
+ const d=document.createElement("details");d.className="permission-group";d.dataset.key=g.key;
+ const summary=document.createElement("summary"),title=document.createElement("span"),name=document.createElement("span"),sub=document.createElement("small"),badge=document.createElement("span");
+ title.className="permission-group-title";name.textContent=g.modelName;sub.textContent=g.appName;title.append(name,sub);badge.className="group-count";summary.append(title,badge);d.append(summary);
+ const tools=document.createElement("div");tools.className="group-actions";
+ [["Select module",true],["Clear module",false]].forEach(([label,checked])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.addEventListener("click",()=>{g.items.forEach(i=>{if(!i.card.hidden)i.input.checked=checked});update()});tools.append(b)});d.append(tools);
+ const list=document.createElement("div");list.className="permissions";g.items.forEach(i=>list.append(i.card));d.append(list);wrapper.append(d);
+});
+root.replaceWith(wrapper);
+function update(){selectedCount.textContent=String(items.filter(i=>i.input.checked).length);visibleCount.textContent="· "+items.filter(i=>!i.card.hidden).length+" visible of "+items.length;
+ grouped.forEach(g=>{const d=Array.from(wrapper.children).find(x=>x.dataset.key===g.key);if(!d)return;const n=g.items.filter(i=>i.input.checked).length,v=g.items.filter(i=>!i.card.hidden).length;d.querySelector(".group-count").textContent=n+" selected · "+g.items.length+" total";d.hidden=v===0;});}
+search.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();items.forEach(i=>i.card.hidden=!!q&&!i.text.includes(q));update()});
+document.getElementById("expandAllPermissions").addEventListener("click",()=>wrapper.querySelectorAll("details:not([hidden])").forEach(d=>d.open=true));
+document.getElementById("collapseAllPermissions").addEventListener("click",()=>wrapper.querySelectorAll("details").forEach(d=>d.open=false));
+document.getElementById("selectVisiblePermissions").addEventListener("click",()=>{items.forEach(i=>{if(!i.card.hidden)i.input.checked=true});update()});
+document.getElementById("clearVisiblePermissions").addEventListener("click",()=>{items.forEach(i=>{if(!i.card.hidden)i.input.checked=false});update()});
+document.getElementById("clearAllPermissions").addEventListener("click",()=>{if(confirm("Clear all selected permissions?")){items.forEach(i=>i.input.checked=false);update()}});
+const rules={
+ teacher:[
+  ["academic",["view","add","change"],["academicrecord","assessment","assessmenttype","assessmentweek","assessmentwindow","gradingscale","subject","stream"]],
+  ["students",["view"],["student"]],
+  ["attendance",["view","add","change"],["attendance"]],
+  ["school_attendance",["view","add","change"],["attendance"]],
+  ["timetable",["view"],["timetablelesson","timetableclass","timetableperiod","timetableteacher","timetablesubject","timetableteacherclassassignment","timetableteachersubject","timetableteacherteachingassignment","timetableteachersubstitution","timetableterm","timetableversion"]],
+  ["scheduling",["view"],["day","period","room","subject","teacher","teacherclassassignment","teachersubject","teachersubstitution","teacherteachingassignment","timetableentry","examschedule"]],
+  ["lms",["view","add","change"],["assignment","assignmentsubmission","course","courseclass","digitallesson","learningresource","subject"]],
+  ["noticeboard",["view"],["notice"]],
+  ["messaging",["view","add"],["message"]],
+  ["weekly_reports",["view","add","change"],["weeklyassessmentreport","weeklyassessmentweek","weeklyreportreply"]],
+  ["library",["view"],["book","bookissue","category","librarymember"]]
+ ],
+ hod:[
+  ["academic",["view","add","change"],["academicrecord","assessment","assessmenttype","assessmentweek","assessmentwindow","gradingscale","subject","stream"]],
+  ["students",["view"],["student"]],
+  ["weekly_reports",["view","add","change"],["weeklyassessmentreport","weeklyassessmentweek","weeklyreportreply"]],
+  ["timetable",["view","change"],["timetablelesson","timetableclass","timetableperiod","timetableteacher","timetablesubject","timetableteacherclassassignment","timetableteachersubject","timetableteacherteachingassignment","timetableteachersubstitution","timetableterm","timetableversion"]],
+  ["scheduling",["view","change"],["day","period","room","subject","teacher","teacherclassassignment","teachersubject","teachersubstitution","teacherteachingassignment","timetableentry","examschedule"]]
+ ],
+ head:[
+  ["students",["view"],["student","onlineapplication","studentpromotionhistory"]],
+  ["academic",["view"],["academicrecord","assessment","assessmenttype","assessmentweek","assessmentwindow","gradingscale","subject","stream"]],
+  ["hr_payroll",["view"],["employee","attendance","leaveapplication","employeedocument","employeeexit","jobposition","performanceappraisal"]],
+  ["fees",["view"],["feerecord","feepayment","feestructure","paymentmethod","term","academicyear"]],
+  ["discipline",["view","add","change"],["disciplineaction","disciplineappeal","disciplinecase","disciplinecategory","disciplinecommunication","disciplinedecision","disciplineimprovementplan","disciplineincidentreport","disciplineinvolvedparty","disciplinemeeting","disciplinepolicy","disciplinestatement"]],
+  ["noticeboard",["view","add","change"],["notice"]],
+  ["weekly_reports",["view"],["weeklyassessmentreport","weeklyassessmentweek","weeklyreportreply"]],
+  ["timetable",["view"],["timetablelesson","timetableclass","timetableperiod","timetableteacher","timetablesubject","timetableteacherclassassignment","timetableteachersubject","timetableteacherteachingassignment","timetableteachersubstitution","timetableterm","timetableversion"]],
+  ["scheduling",["view"],["day","period","room","subject","teacher","teacherclassassignment","teachersubject","teachersubstitution","teacherteachingassignment","timetableentry","examschedule"]]
+ ],
+ accountant:[
+  ["fees",["view","add","change"],["academicyear","alternatepayment","banktransaction","feepayment","feerecord","feestructure","onlinepayment","paymentmethod","term","tillpaymentintent","mpesapaybilltransaction"]],
+  ["transport",["view"],["transportfeecharge","transportfeestructure"]],
+  ["transport_pro",["view"],["transportcharge","transportpayment"]],
+  ["hr_payroll",["view"],["payrollperiod","payrollrecord","payslip"]]
+ ],
+ hr:[
+  ["hr_payroll",["view","add","change"],["allowancetype","attendance","deductiontype","department","employee","employeeallowance","employeededuction","employeedocument","employeeexit","jobposition","leaveapplication","leavetype","loanapplication","performanceappraisal","staffloan"]],
+  ["accounts",["view"],["department","userprofile"]]
+ ],
+ librarian:[
+  ["library",["view","add","change"],["book","bookissue","category","librarymember"]],
+  ["lms",["view"],["learningresource","course","courseclass","digitallesson"]]
+ ],
+ transport:[
+  ["transport",["view","add","change"],["driver","fuelrecord","route","routestop","studenttransportassignment","transportassignment","transporttrip","vehicle","vehiclemaintenance"]],
+  ["transport_pro",["view","add","change"],["boardingevent","learnertransport","maintenancerecord","routestop","transportauditevent","transportcharge","transportincident","transportnotificationlog","transportpayment","transportroute","transportstaff","transporttrip","vehicle","vehicleinspection"]]
+ ],
+ storekeeper:[
+  ["inventory",["view","add","change"],["asset","category","inventorycategory","inventoryitem","item","purchase","purchaseline","purchaserecord","stockmovement","supplier"]]
+ ]
+};
+const inherit={hod:"teacher"};
+function applyTemplate(key){if(!key)return;if(key==="custom"){if(confirm("Clear all permissions and build a custom role from scratch?"))items.forEach(i=>i.input.checked=false);else template.value="";update();return;}
+ const wanted=new Set();function add(k){if(inherit[k])add(inherit[k]);(rules[k]||[]).forEach(([app,actions,models])=>items.forEach(i=>{const action=i.codename.split("_")[0];if(i.app===app&&models.includes(i.model)&&actions.includes(action))wanted.add(i.input.value)}));}add(key);
+ if(!wanted.size){alert("No matching permissions were found for this template. Existing selections were left unchanged.");template.value="";return;}
+ if(confirm("Apply the "+template.options[template.selectedIndex].text+" template? This replaces the current selection with matching permissions. Review and adjust before saving.")){items.forEach(i=>i.input.checked=wanted.has(i.input.value));}else template.value="";
+ update();}
+template.addEventListener("change",()=>applyTemplate(template.value));update();
+})();
+</script>
 
 </body>
 </html>

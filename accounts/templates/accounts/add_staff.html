@@ -288,39 +288,6 @@
                 <div class="col-md-6">
 
                     <label class="form-label">
-                        Staff Role
-                    </label>
-
-                    <select
-                        name="custom_role"
-                        class="form-select"
-                    >
-
-                        <option value="">
-                            -- Select Role --
-                        </option>
-
-                        {% for role in roles %}
-
-                            <option
-                                value="{{ role.id }}"
-                                {% if request.POST.custom_role == role.id|stringformat:"s" %}
-                                    selected
-                                {% endif %}
-                            >
-                                {{ role.name }}
-                            </option>
-
-                        {% endfor %}
-
-                    </select>
-
-                </div>
-
-
-                <div class="col-md-6">
-
-                    <label class="form-label">
                         User Group
                     </label>
 
