@@ -713,8 +713,16 @@ def staff_dashboard(request):
         and teacher is not None
     )
 
+    can_access_academic_portal = (
+        is_admin_user(request.user)
+        or user_has_role_permission(
+            request.user,
+            "access_staff_academic_portal",
+            "accounts",
+        )
+    )
     can_use_academic_portal = (
-        can_view_academic
+        can_access_academic_portal
         and (
             is_admin_user(request.user)
             or bool(academic_class_pairs)
@@ -851,8 +859,8 @@ def staff_academic_portal(request):
         is_admin_user(request.user)
         or user_has_role_permission(
             request.user,
-            "view_academicrecord",
-            "academic",
+            "access_staff_academic_portal",
+            "accounts",
         )
     ):
         return redirect("accounts:staff_dashboard")
@@ -901,8 +909,8 @@ def staff_academic_class(request):
         is_admin_user(request.user)
         or user_has_role_permission(
             request.user,
-            "view_academicrecord",
-            "academic",
+            "access_staff_academic_portal",
+            "accounts",
         )
     ):
         return redirect("accounts:staff_dashboard")

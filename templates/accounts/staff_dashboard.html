@@ -1430,12 +1430,10 @@ footer,
                 {% endif %}
 
                 {% if can_use_academic_portal %}
-                {% if portal_capabilities.portal_view_academic %}
-<a class="nav-link" href="{% url 'accounts:staff_academic_portal' %}">
+                <a class="nav-link" href="{% url 'accounts:staff_academic_portal' %}">
                     <i class="bi bi-mortarboard me-2"></i>
                     Academic Portal
                 </a>
-{% endif %}
                 {% endif %}
 
                 {% if can_view_timetable %}
