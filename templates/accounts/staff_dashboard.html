@@ -1533,7 +1533,7 @@ footer,
 
                 {% if can_view_library %}
                 {% if portal_capabilities.portal_view_library %}
-<a class="nav-link" href="{% url 'library:dashboard' %}">
+<a class="nav-link" href="{% url 'library_dashboard' %}">
                     <i class="bi bi-book me-2"></i>
                     Library
                 </a>
@@ -1780,7 +1780,7 @@ footer,
 
 
         {% if can_view_timetable %}
-        <a href="{% url 'accounts:staff_timetable' %}"
+        <a href="{% url 'accounts:staff_my_timetable' %}"
            class="minimal-action">
 
             <span class="minimal-action-icon">
@@ -1864,6 +1864,8 @@ footer,
 
 </body>
 </html>
+
+
 
 
 
