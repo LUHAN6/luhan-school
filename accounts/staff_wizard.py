@@ -173,7 +173,7 @@ def _roles():
 def _subjects():
     return (
         TimetableSubject.objects
-        .filter(is_active=True)
+        .filter(active=True)
         .order_by("name")
     )
 
@@ -950,7 +950,7 @@ def _create_staff_account(
                     TimetableSubject.objects
                     .filter(
                         id__in=subject_ids,
-                        is_active=True
+                        active=True
                     )
                     .order_by("name")
                 )
@@ -984,7 +984,7 @@ def _create_staff_account(
                             id=assignment.get(
                                 "subject_id"
                             ),
-                            is_active=True
+                            active=True
                         )
                         .first()
                     )
